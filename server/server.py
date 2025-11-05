@@ -3,16 +3,18 @@ import sys
 import threading
 import os
 from pymongo import MongoClient
+from dotenv import load_dotenv
+from datetime import datetime
 
 
 # TODO : ADD FUNCTION TO GET THE HISTORY เพราะยังไม่ได้ทำ MONGO ขกคิด database คิดให้หน่อย
 
 
-# get local ip of the that server computer
+# get local ip of the server computer
 def get_local_ip():
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
-        # connect to a public IP, no packets sent, just to get local interface IP
+        # connect to a public IP and HTTP port, no packets sent, just to get local interface IP
         s.connect(("8.8.8.8", 80))
         return s.getsockname()[0]
     except Exception:
@@ -33,7 +35,7 @@ print(f"HOST ip address is: {HOST}")
 
 # option 2
 # run: python server.py {PORT}
-PORT = sys.argv[0] 
+PORT = int(sys.argv[1]) 
 print(f"POST ip address is: {PORT}")
 
 
@@ -51,11 +53,20 @@ clients = {}
 groups = {} 
 
 # ++++++++ CONNECT DATABASE (MONGODB) .ENV ดูในดิส ยังไม่ได้เชื่อมกะตัวcode ++++++++
+load_dotenv(os.path.join(os.path.dirname(__file__), '.env'))
 connection_string = os.getenv('MONGODB_URI')
-clientMongo = MongoClient(connection_string)
-# DATABASE
+if not connection_string:
+    raise RuntimeError("MONGODB_URI not set in environment or server/.env")
+
+clientMongo = MongoClient(connection_string, serverSelectionTimeoutMS=5000)
+try:
+    # quick check that the server is reachable
+    clientMongo.admin.command('ping')
+except Exception as e:
+    print("Warning: cannot connect to MongoDB:", e)
+
+# DATABASE and COLLECTIONS
 db = clientMongo["my_database"]
-# COLLECTION
 users = db["users"]
 messages = db["messages"]
 # ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
