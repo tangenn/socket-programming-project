@@ -342,11 +342,6 @@ receive()
 
 
 
-
-
-
-
-
 # ********* OLD VERSION  *************
 # def handle_client(conn, addr, clients):
 #     """Handle individual client connections"""
