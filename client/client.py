@@ -3,8 +3,11 @@ import os
 import threading
 
 # SET PORT AND ADDRESS FOR CLIENT
-HOST = os.getenv('HOST', '127.0.0.1')
-PORT = int(os.getenv('PORT', 65432))
+# HOST = os.getenv('HOST', '127.0.0.1')
+# PORT = int(os.getenv('PORT', 65432))
+
+HOST = input("ENTER server ip address: ")
+PORT = int(input("ENTER server port: "))
 
 # TODO:CHANGE THE INPUT 
 username = input("ENTER a username: ")
