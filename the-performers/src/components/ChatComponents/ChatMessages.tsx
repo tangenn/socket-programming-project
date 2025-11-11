@@ -1,4 +1,4 @@
-// Message Types
+// MessageType Types
 export type MessageType = {
   id: string;
   sender: string;
@@ -22,12 +22,12 @@ export function ChatMessages({ messages, isGroup }: { messages: MessageType[]; i
             {/* Group chat sender info */}
             {isGroup && !m.isSelf && (
               <div className="flex items-center mb-1 gap-2 text-sm">
-                <div className="w-6 h-6 rounded-full bg-gray-300" />
+                <img className="w-6 h-6 rounded-full object-cover" src={m.avatar ?? "/fallback.png"} alt="pfp" />
                 <span className="font-semibold">{m.sender}</span>
               </div>
             )}
 
-            {/* Message bubbles */}
+            {/* MessageType bubbles */}
             {m.type === "text" && (
               <div className="bg-white px-4 py-2 rounded-xl shadow">{m.text}</div>
             )}

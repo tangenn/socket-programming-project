@@ -4,7 +4,6 @@ import { ChatMessages, MessageType } from "@/components/ChatComponents/ChatMessa
 export default function Page({ params }: { params: { username: string } }) {
   const { username } = params;
 
-  // later you'll fetch:
   // const messages = await getChat(username)
 
   const mockMessages: MessageType[] = [
@@ -13,6 +12,38 @@ export default function Page({ params }: { params: { username: string } }) {
     sender: "Aea",
     timestamp: "11.11",
     isSelf: false,
+    type: "text",
+    text: "CUH",
+  },
+  {
+    id: "2",
+    sender: "Aea",
+    timestamp: "11.11",
+    isSelf: false,
+    type: "text",
+    text: "CUH",
+  },
+  {
+    id: "3",
+    sender: "Aea",
+    timestamp: "11.11",
+    isSelf: false,
+    type: "text",
+    text: "CUH",
+  },
+  {
+    id: "4",
+    sender: "Aea",
+    timestamp: "11.11",
+    isSelf: true,
+    type: "text",
+    text: "CUH",
+  },
+  {
+    id: "6",
+    sender: "Aea",
+    timestamp: "11.11",
+    isSelf: true,
     type: "text",
     text: "CUH",
   },
