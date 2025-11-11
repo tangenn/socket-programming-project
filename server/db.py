@@ -1,0 +1,159 @@
+import sys
+import os
+from pymongo import MongoClient
+from pymongo.errors import DuplicateKeyError
+from dotenv import load_dotenv
+from datetime import datetime
+
+def connect_db() :
+    # ++++++++ CONNECT DATABASE (MONGODB) .ENV ++++++++
+    load_dotenv(os.path.join(os.path.dirname(__file__), '.env'))
+    connection_string = os.getenv('MONGODB_URI')
+    if not connection_string:
+        raise RuntimeError("MONGODB_URI not set in environment or server/.env")
+
+    clientMongo = MongoClient(connection_string, serverSelectionTimeoutMS=5000)
+    try:
+        # quick check that the server is reachable
+        clientMongo.admin.command('ping')
+        # ++++++++++++++++++++++++++++++++++++++++++++++++
+        # DATABASE and COLLECTIONS
+        db = clientMongo["SocketDB"]
+        users = db["users"]
+        # {username(unique), password(plain text)}
+        dm_messages = db["dm_messages"]
+        # {sender, receiver, content, timestamp}
+        group_messages = db["group_messages"]
+        # {sender, group_name, content, timestamp}
+        groups = db["groups"]
+        # {group_name, members: [username1, username2, ...]}
+        # Ensure username and group_name are unique
+        users.create_index("username", unique=True)
+        groups.create_index("group_name", unique=True)
+        # +++++++++++++++++++++++++++++++++++++++++++++++++
+        print("Pinged your deployment. You successfully connected to MongoDB!")
+        return users, dm_messages, group_messages, groups
+    except Exception as e:
+        print("Warning: cannot connect to MongoDB:", e)
+
+def add_user_to_db(users, username, password):
+    try:
+        doc = {
+            "username": username,
+            "password": password
+        }
+        users.update_one({"username": username}, {"$set": doc}, upsert=True)
+        print("Added user to DB:", username)
+    except DuplicateKeyError:
+        print(f"User '{username}' already exists.")
+        return False
+    except Exception as e:
+        print("add_user_to_db error:", e)
+
+def check_credentials(users,username,password):
+        user = users.find_one({"username": username})
+        if not user:
+            return False  # User not found
+
+        password = user.get('password')
+        if not password:
+            return False # Account has no password (old data?)
+
+        # This check is also CPU-intensive
+        return True
+
+def save_dm_message(dm_messages, sender, receiver, content, timestamp):
+    """Persist a message document for DM."""
+    try:
+        doc = {
+            "sender": sender,
+            "receiver": receiver,
+            "content": content,
+            "timestamp": timestamp
+        }
+        dm_messages.insert_one(doc)
+        print("Saved message to DB:", doc)
+    except Exception as e:
+        print("Failed to save message to DB:", e)
+
+def get_dm_messages(dm_messages, sender, receiver):
+    """Retrieve message documents for DM between sender and receiver."""
+    try:
+        docs = dm_messages.find({
+            "$or": [
+                {"sender": sender, "receiver": receiver},
+                {"sender": receiver, "receiver": sender}
+            ]
+        }).sort("timestamp", 1)  # Sort by timestamp ascending
+        return list(docs)
+    except Exception as e:
+        print("Failed to retrieve messages from DB:", e)
+        return []
+
+
+def save_group_message(group_messages, sender, group_name, content, timestamp):
+    """Persist a message document for group."""
+    try:
+        doc = {
+            "sender": sender,
+            "group_name": group_name,
+            "content": content,
+            "timestamp": timestamp
+        }
+        group_messages.insert_one(doc)
+        print("Saved message to DB:", doc)
+    except Exception as e:
+        print("Failed to save message to DB:", e)
+
+def get_group_messages(group_messages, group_name):
+    """Retrieve message documents for a group."""
+    try:
+        docs = group_messages.find({
+            "group_name": group_name
+        }).sort("timestamp", 1)  # Sort by timestamp ascending
+        return list(docs)
+    except Exception as e:
+        print("Failed to retrieve messages from DB:", e)
+        return []
+
+def create_group_if_missing(groups, group_name):
+    try:
+        groups.update_one(
+            {"group_name": group_name},
+            {"$setOnInsert": {"group_name": group_name, "members": []}},
+            upsert=True
+        )
+        print(f"Group '{group_name}' created or already exists.")
+    except DuplicateKeyError:
+        print(f"Group '{group_name}' already exists.")
+        return False
+    except Exception as e:
+        print("create_group_if_missing error:", e)
+
+def add_member_to_group(groups, group_name, username):
+    try:
+        groups.update_one(
+            {"group_name": group_name},
+            {"$addToSet": {"members": username}}  # add only if not already in list
+        )
+        print(f"Added '{username}' to group '{group_name}'.")
+    except Exception as e:
+        print("add_member_to_group error:", e)
+
+def remove_member_from_group(groups, group_name, username):
+    try:
+        groups.update_one(
+            {"group_name": group_name},
+            {"$pull": {"members": username}}  # remove from list if exists
+        )
+        print(f"Removed '{username}' from group '{group_name}'.")
+    except Exception as e:
+        print("remove_member_from_group error:", e)
+
+def debug_list_collections(groups, db):
+    try:
+        print("Collections:", db.list_collection_names())
+        print("Sample group docs:", list(groups.find().limit(5)))
+    except Exception as e:
+        print("debug_list_collections error:", e)
+
