@@ -1,5 +1,5 @@
-import { GroupChatsPanel } from "@/components/homePageComponents/GroupChatsPanel";
-import { UsersPanel } from "@/components/homePageComponents/UserPanel";
+import { GroupChatsPanel } from "@/components/HomePageComponents/GroupChatsPanel";
+import { UsersPanel } from "@/components/HomePageComponents/UserPanel";
 
 export default function HomePage() {
   const mockUser = { name: "MHEE" };
