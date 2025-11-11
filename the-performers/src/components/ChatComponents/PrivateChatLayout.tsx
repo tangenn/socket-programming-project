@@ -1,6 +1,8 @@
+'use client'
 import { ChatInput } from "./ChatInput";
 import { ChatMessages, MessageType } from "./ChatMessages";
 import { RPSSelector } from "./RPSSelector";
+import React from "react";
 
 type PrivateChatProps = {
   user: { name: string; avatar?: string };
@@ -8,6 +10,7 @@ type PrivateChatProps = {
 };
 
 export function PrivateChatLayout({ user, messages }: PrivateChatProps) {
+  const [showRPS, setShowRPS] = React.useState(false);
   return (
     <div className="min-h-screen bg-gray-300 p-10 flex flex-col items-center gap-6">
       <div className="flex items-center gap-3 w-full max-w-3xl">
@@ -16,10 +19,10 @@ export function PrivateChatLayout({ user, messages }: PrivateChatProps) {
       </div>
 
       <div className="w-full max-w-3xl">
-        <RPSSelector open={false} />
-        <ChatMessages messages={messages} isGroup={false} />
+        <ChatMessages messages={messages} isGroup={false} shrink={showRPS} />
         <div className="mt-4">
-          <ChatInput />
+          <RPSSelector open={showRPS} />
+          <ChatInput onToggleRPS={() => setShowRPS(v => !v)} />
         </div>
       </div>
     </div>

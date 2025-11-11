@@ -12,11 +12,10 @@ export type MessageType = {
   result?: "win" | "lose" | "draw";
 };
 
-
 // Scrollable chat list
-export function ChatMessages({ messages, isGroup }: { messages: MessageType[]; isGroup: boolean }) {
+export function ChatMessages({ messages, isGroup, shrink }: { messages: MessageType[]; isGroup: boolean; shrink?: boolean }) {
   return (
-    <div className="flex flex-col gap-6 p-6 bg-gray-200/60 rounded-3xl h-[60vh] overflow-y-auto">
+    <div className={`flex flex-col gap-6 p-6 bg-gray-200/60 rounded-3xl overflow-y-auto transition-all duration-300 ${shrink ? "h-[50vh]" : "h-[60vh]"}`}>
       {messages.map((m) => {
         if (isGroup) {
           return (
@@ -58,7 +57,9 @@ export function ChatMessages({ messages, isGroup }: { messages: MessageType[]; i
                   <span>{m.isSelf ? "Challenge created. Waiting for an opponent." : `${m.sender} challenges you.`}</span>
                 )}
                 {m.type === "challenge_result" && (
-                  <span className="font-semibold">{m.challengeStatus === "accepted" ? `${m.sender} accepts your challenge.` : ""}</span>
+                  <span className="font-semibold">
+                    {m.challengeStatus === "accepted" ? `${m.sender} accepts your challenge.` : ""}
+                  </span>
                 )}
               </div>
               <span className="text-sm">{m.timestamp}</span>
