@@ -35,6 +35,7 @@ def connect_db() :
         return users, dm_messages, group_messages, groups
     except Exception as e:
         print("Warning: cannot connect to MongoDB:", e)
+        return None,None,None,None
 
 def add_user_to_db(users, username, password):
     try:

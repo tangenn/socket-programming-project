@@ -8,7 +8,7 @@ import db
 # ---------server setup--------------
 # connect socketIO
 sio = socketio.AsyncServer(async_mode = 'asgi' ,cors_allowed_origins='*')
-app = socketio.ASGIApp(sio ,'')
+app = socketio.ASGIApp(sio)
 
 # --- State Management ---
 user_to_sid = {}
@@ -21,6 +21,18 @@ users, dm_messages, group_messages, groups = db.connect_db()
 @sio.event
 async def connect(sid, environ) :
     print(f"{sid} connected")
+
+
+@sio.event
+async def disconnecte(sid) :
+    if sid in sid_to_user:
+        username = sid_to_user[sid]
+        
+        del user_to_sid[username]
+        del sid_to_user[sid]
+
+        print(f'Client disconnected: {username} ({sid})')
+
 
 @sio.event
 async def register(sid,data):
@@ -69,16 +81,6 @@ async def login(sid,data):
     await sio.emit('connected', { 'message': f'{username} has connected' }, to=sid)
 
 @sio.event
-async def disconnected(sid) :
-    if sid in sid_to_user:
-        username = sid_to_user[sid]
-        
-        del user_to_sid[username]
-        del sid_to_user[sid]
-
-        print(f'Client disconnected: {username} ({sid})')
-
-@sio.event
 async def dm(sid ,data):
     sender = sid_to_user.get(sid)
     receiver = data.get('receiver')
@@ -90,14 +92,21 @@ async def dm(sid ,data):
     await asyncio.to_thread(db.save_dm_message,dm_messages ,sender, receiver, content, timestamp)
 
     receiver_sid = user_to_sid.get(receiver)
+    message_payload = {
+        'sender': sender,
+        'receiver': receiver,
+        'content': content,
+        'timestamp': timestamp
+    }
+
     # receiver online
     if receiver_sid:
-        await sio.emit('dm',{'from_user':sender ,'content':content,'timestamp':timestamp}, to=receiver_sid)
+        await sio.emit('dm', message_payload, to=receiver_sid)
     # receiver offline
     else :
         await sio.emit('server_message',f'User {receiver} is offline. Message saved.', to=sid)
     # sender see their own msg being sent to receiver
-    await sio.emit('dm',{'from': sender, 'to': receiver_sid ,'content': content,'timestamp': timestamp}, to=sid)
+    await sio.emit('dm', message_payload, to=sid)
 
 @sio.event
 async def dm_history(sid, data) :
