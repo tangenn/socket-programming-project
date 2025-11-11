@@ -8,7 +8,7 @@ import db
 # ---------server setup--------------
 # connect socketIO
 sio = socketio.AsyncServer(async_mode = 'asgi' ,cors_allowed_origins='*')
-app = socketio.ASGIApp(sio ,'')
+app = socketio.ASGIApp(sio)
 
 # --- State Management ---
 user_to_sid = {}
@@ -42,31 +42,67 @@ async def register(sid,data):
     
 @sio.event
 async def login(sid,data):
-    username = data.get('username')
-    password = data.get('password')
-    # VERIFY USER is not already online
-    if not username:
-        await sio.emit('login_error' , {'message':'Username is required'}, to=sid)
-        return
+    # username = data.get('username')
+    # password = data.get('password')
+    # # VERIFY USER is not already online
+    # if not username:
+    #     await sio.emit('login_error' , {'message':'Username is required'}, to=sid)
+    #     return
     
-    if username in user_to_sid:
-        await sio.emit('login_error', {'message': 'Username already taken'}, to=sid)
-        return
+    # if username in user_to_sid:
+    #     await sio.emit('login_error', {'message': 'Username already taken'}, to=sid)
+    #     return
     
-    is_valid = await asyncio.to_thread(db.check_credentials,users, username, password)
+    # is_valid = await asyncio.to_thread(db.check_credentials,users, username, password)
 
-    # ------ Login Fail --------
-    if not is_valid:
-        await sio.emit('login_error', {'message': 'Invalid username or password'}, to=sid)
-        return
+    # # ------ Login Fail --------
+    # if not is_valid:
+    #     await sio.emit('login_error', {'message': 'Invalid username or password'}, to=sid)
+    #     return
     
-    # ------ Login Success --------
-    # JUST for tracking 
-    user_to_sid[username] = sid
-    sid_to_user[sid] = username
+    # # ------ Login Success --------
+    # # JUST for tracking 
+    # user_to_sid[username] = sid
+    # sid_to_user[sid] = username
 
-    print(f'User {username} logged in with sid {sid}')
-    await sio.emit('connected', { 'message': f'{username} has connected' }, to=sid)
+    # print(f'User {username} logged in with sid {sid}')
+    # await sio.emit('login_success', {'username': username}, to=sid)
+    try:
+        username = data.get('username')
+        password = data.get('password')
+
+        if not username:
+            await sio.emit('login_error', {'message': 'Username is required'}, to=sid)
+            return
+        
+        if username in user_to_sid:
+            await sio.emit('login_error', {'message': 'Username already taken'}, to=sid)
+            return
+        
+        # --- BYPASS ---
+        # Comment out the database call and hardcode success
+        # is_valid = await asyncio.to_thread(db.check_credentials, users, username, password)
+        is_valid = True 
+        # --- END BYPASS ---
+
+        if not is_valid:
+            await sio.emit('login_error', {'message': 'Invalid username or password'}, to=sid)
+            return
+        
+        # ------ Login Success --------
+        user_to_sid[username] = sid
+        sid_to_user[sid] = username
+
+        print(f'User {username} logged in with sid {sid}')
+        await sio.emit('login_success', {'username': username}, to=sid)
+
+    except Exception as e:
+        # --- THIS IS THE CRASH-PROOFING ---
+        # 1. Print the real error to your server console for debugging
+        print(f"!!! LOGIN HANDLER CRASHED: {e}")
+        
+        # 2. Send a generic, safe error to the client
+        await sio.emit('login_error', {'message': 'A server error occurred. Please try again.'}, to=sid)
 
 @sio.event
 async def disconnected(sid) :
@@ -114,9 +150,11 @@ async def join_group(sid,data):
     if not username or not group_name: 
         return
 
-    sio.enter_room(sid,group_name)
+    await sio.enter_room(sid,group_name)
     
-    await asyncio.to_thread(db.add_member_to_group,groups ,group_name, username)
+    # --- BYPASS ---
+    # await asyncio.to_thread(db.add_member_to_group,groups ,group_name, username)
+    # --- END BYPASS ---
 
     # Tell client to display chat box 
     await sio.emit('server_message', f'You joined group {group_name}', to=sid)
@@ -167,12 +205,19 @@ async def group_message(sid,data):
     content = data.get('content')
     timestamp = datetime.now(timezone.utc)
 
+    print(username, group_name, content, timestamp)
+
     if not username or not group_name or not content:
         await sio.emit('group_message_error', {'message': 'Invalid group message data'}, to=sid)
         return
-    await asyncio.to_thread(db.save_group_message, group_messages ,username, group_name, content, timestamp)
+    
+    # --- BYPASS ---
+    # Comment out the database call
+    # await asyncio.to_thread(db.save_group_message, group_messages ,username, group_name, content, timestamp)
+    print("BYPASS: Skipped saving message to DB")
+    # --- END BYPASS ---
 
-    await sio.emit('group_message',{'from': username, 'to': group_name ,'content': content,'timestamp': timestamp}, to=group_name)
+    await sio.emit('group_message',{'from': username, 'to': group_name ,'content': content,'timestamp': timestamp.isoformat()}, to=group_name)
 
 @sio.event
 async def group_history(sid, data):
