@@ -44,23 +44,25 @@ def add_user_to_db(users, username, password):
         }
         users.update_one({"username": username}, {"$set": doc}, upsert=True)
         print("Added user to DB:", username)
+        return True
     except DuplicateKeyError:
         print(f"User '{username}' already exists.")
         return False
     except Exception as e:
         print("add_user_to_db error:", e)
+        return False
 
 def check_credentials(users,username,password):
         user = users.find_one({"username": username})
         if not user:
             return False  # User not found
 
-        password = user.get('password')
-        if not password:
+        verify_password = user.get('password')
+        if not verify_password:
             return False # Account has no password (old data?)
 
         # This check is also CPU-intensive
-        return True
+        return password == verify_password
 
 def save_dm_message(dm_messages, sender, receiver, content, timestamp):
     """Persist a message document for DM."""
