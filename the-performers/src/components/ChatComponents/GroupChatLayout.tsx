@@ -5,19 +5,21 @@ import { RPSSelector } from "./RPSSelector";
 
 export function GroupChatLayout({ groupName, members, messages }: { groupName: string; members: string[]; messages: MessageType[] }) {
   return (
-    <div className="min-h-screen bg-gray-300 p-10 flex flex-col items-start gap-6">
-      <h1 className="text-xl font-semibold">{groupName}</h1>
+    <div className="min-h-screen bg-gray-300 p-10 flex justify-center">
+      <div className="w-full max-w-6xl flex flex-col items-start gap-6">
+        <h1 className="text-xl font-semibold">{groupName}</h1>
 
-      <div className="flex gap-6 w-full max-w-5xl">
-        <div className="flex-1">
-          <RPSSelector open={false} />
-          <ChatMessages messages={messages} isGroup={true} />
-          <div className="mt-4">
-            <ChatInput />
+        <div className="flex gap-6 w-full">
+          <div className="flex-1">
+            <RPSSelector open={false} />
+            <ChatMessages messages={messages} isGroup={true} />
+            <div className="mt-4">
+              <ChatInput />
+            </div>
           </div>
-        </div>
 
-        <MemberList members={members} />
+          <MemberList members={members} />
+        </div>
       </div>
     </div>
   );

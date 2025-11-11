@@ -50,7 +50,7 @@ export default function Page({ params }: { params: { groupName: string } }) {
   return (
     <GroupChatLayout
       groupName={groupName}
-      members={["Aea", "SYBAU", "Zagif"]}
+      members={["SYBAU1", "SYBAU2", "SYBAU3", "SYBAU4", "SYBAU5", "SYBAU6", "SYBAU7", "SYBAU8", "SYBAU9", "SYBAU10", "SYBAU11", "SYBAU12", "SYBAU13", "SYBAU14", "SYBAU15"]}
       messages={mockMessages}
     />
   );

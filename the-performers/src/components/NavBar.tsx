@@ -9,7 +9,7 @@ export default function Navbar() {
       <div className="flex items-center gap-6 font-semibold">
         <Link href="/" className="hover:opacity-70 transition">Home</Link>
         <Link href="/about" className="hover:opacity-70 transition">About</Link>
-        <Link href="/contact" className="hover:opacity-70 transition">Contact</Link>
+        <Link href="/login" className="hover:opacity-70 transition">Login</Link>
       </div>
     </nav>
   );
