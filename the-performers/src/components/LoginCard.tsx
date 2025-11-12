@@ -24,6 +24,8 @@ export default function LoginCard() {
     // Listen for the 'login_success' event
     const onLoginSuccess = (data: { username: string }) => {
       console.log('Login successful:', data.username);
+      // Store username in localStorage
+      localStorage.setItem('username', data.username);
       // On success, clear errors and redirect
       setErrorMessage('');
       router.push('/'); // Redirect to your chat or dashboard page

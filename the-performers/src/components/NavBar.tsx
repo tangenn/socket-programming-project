@@ -14,6 +14,12 @@ export default function Navbar() {
     setIsMounted(true);
     setIsConnected(socket.connected);
     
+    // Check localStorage for existing username
+    const storedUsername = localStorage.getItem('username');
+    if (storedUsername) {
+      setUsername(storedUsername);
+    }
+    
     // --- Listen for built-in socket events ---
     function onConnect() {
       setIsConnected(true);
@@ -25,6 +31,7 @@ export default function Navbar() {
     // Listen for login success to update username
     function onLoginSuccess(data: { username: string }) {
       setUsername(data.username);
+      localStorage.setItem('username', data.username);
     }
 
     // Add the listeners
@@ -44,10 +51,12 @@ export default function Navbar() {
   const handleLogout = () => {
     // Disconnect the socket - server will handle cleanup on disconnect
     socket.disconnect();
-    // Clear username
+    // Clear username from state and localStorage
     setUsername(null);
-    // Redirect to home
+    localStorage.removeItem('username');
+    // Redirect to home and refresh
     router.push('/');
+     window.location.reload();
   };
 
   return (
