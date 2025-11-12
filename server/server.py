@@ -24,7 +24,7 @@ async def connect(sid, environ) :
 
 
 @sio.event
-async def disconnecte(sid) :
+async def disconnect(sid) :
     if sid in sid_to_user:
         username = sid_to_user[sid]
         
