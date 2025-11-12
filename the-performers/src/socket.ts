@@ -15,6 +15,8 @@ interface ServerToClientEvents {
   server_message: (message: string) => void;
   group_message: (data: any) => void;
   group_history: (data: { history: any[] }) => void;
+  online_users: (data: { users: string[] }) => void;
+  available_groups: (data: { groups: any[] }) => void;
 }
 
 // Define the types for events your client *sends* to the server
@@ -28,6 +30,8 @@ interface ClientToServerEvents {
   create_group: (data: { group_name: string }) => void;
   group_message: (data: { group_name: string; content: string }) => void;
   group_history: (data: { group_name: string }) => void;
+  online_users: () => void;
+  get_available_groups: () => void;
 }
 
 // Replace with your server's URL

@@ -10,6 +10,13 @@ export default function CreateGroupPage() {
   const [successMessage, setSuccessMessage] = useState('');
   const router = useRouter();
 
+  // Function to sanitize group name for URL safety
+  const sanitizeGroupName = (name: string): string => {
+    // Remove characters that are not URL-safe
+    // Allow: letters (a-z, A-Z), numbers (0-9), hyphens (-), underscores (_), and spaces
+    return name.replace(/[^a-zA-Z0-9\-_ ]/g, '');
+  };
+
   useEffect(() => {
     // Check if user is logged in
     const username = localStorage.getItem('username');
@@ -82,11 +89,18 @@ export default function CreateGroupPage() {
               type="text"
               id="groupName"
               value={groupName}
-              onChange={(e) => setGroupName(e.target.value)}
+              onChange={(e) => {
+                const sanitized = sanitizeGroupName(e.target.value);
+                setGroupName(sanitized);
+              }}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Enter group name"
+              placeholder="Enter group name (letters, numbers, -, _)"
               autoFocus
+              maxLength={50}
             />
+            <p className="text-xs text-gray-500 mt-1">
+              Only letters, numbers, hyphens, underscores, and spaces are allowed
+            </p>
           </div>
 
           {/* Error Message */}
