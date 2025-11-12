@@ -153,6 +153,13 @@ def remove_member_from_group(groups, group_name, username):
     except Exception as e:
         print("remove_member_from_group error:", e)
 
+def get_all_groups(groups):
+    try:
+        return list(groups.find({}, {"_id": 0, "group_name": 1}))
+    except Exception as e:
+        print("get_all_groups error:", e)
+        return []
+
 def debug_list_collections(groups, db):
     try:
         print("Collections:", db.list_collection_names())

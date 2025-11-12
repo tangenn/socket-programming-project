@@ -252,3 +252,15 @@ async def group_history(sid, data):
     group_name = data.get('group_name')
     history = await asyncio.to_thread(db.get_group_messages, group_messages ,group_name)
     await sio.emit('group_history', {'history': history}, to=sid)
+
+
+@sio.event
+async def online_users(sid):
+    online_users_list = list(user_to_sid.keys())
+    await sio.emit('online_users', {'users': online_users_list}, to=sid)
+
+
+@sio.event
+async def get_available_groups(sid):
+    group_list = await asyncio.to_thread(db.get_all_groups, groups)
+    await sio.emit('available_groups', {'groups': group_list}, to=sid)
