@@ -1,53 +1,59 @@
 import { PrivateChatLayout } from "@/components/ChatComponents/PrivateChatLayout";
-import { ChatMessages, MessageType } from "@/components/ChatComponents/ChatMessages";
+import { MessageType } from "@/components/ChatComponents/ChatMessages";
 
-export default function Page({ params }: { params: { username: string } }) {
-  const { username } = params;
-
-  // const messages = await getChat(username)
-
-  const mockMessages: MessageType[] = [
+// Mock Data
+const privateChatMessages: MessageType[] = [
   {
     id: "1",
     sender: "Aea",
-    timestamp: "11.11",
+    avatarId: 1,
+    timestamp: "11:01",
     isSelf: false,
     type: "text",
-    text: "CUH",
+    text: "Hey! want to play RPS?",
   },
   {
     id: "2",
-    sender: "Aea",
-    timestamp: "11.11",
-    isSelf: false,
-    type: "text",
-    text: "CUH",
+    sender: "You",
+    avatarId: 2,
+    timestamp: "11:02",
+    isSelf: true,
+    type: "challenge",
+    opponent: "Aea",
   },
   {
     id: "3",
     sender: "Aea",
-    timestamp: "11.11",
+    avatarId: 1,
+    timestamp: "11:03",
     isSelf: false,
-    type: "text",
-    text: "CUH",
+    type: "challenge_accepted",
+    opponent: "You",
   },
   {
     id: "4",
-    sender: "Aea",
-    timestamp: "11.11",
-    isSelf: true,
-    type: "text",
-    text: "CUH",
+    sender: "System",
+    timestamp: "11:04",
+    isSelf: false,
+    type: "challenge_result",
+    opponent: "Aea",
   },
   {
-    id: "6",
+    id: "5",
     sender: "Aea",
-    timestamp: "11.11",
-    isSelf: true,
+    avatarId: 1,
+    timestamp: "11:05",
+    isSelf: false,
     type: "text",
-    text: "CUH",
+    text: "gg",
   },
 ];
 
-  return <PrivateChatLayout user={{ name: username }} messages={mockMessages} />;
+
+export default function Page({ params }: { params: { username: string } }) {
+  const { username } = params;
+
+ 
+
+  return <PrivateChatLayout user={{ name: username }} messages={privateChatMessages} />;
 }
