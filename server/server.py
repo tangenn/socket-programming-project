@@ -93,8 +93,8 @@ async def login(sid,data):
         
         # --- BYPASS ---
         # Comment out the database call and hardcode success
-        # is_valid = await asyncio.to_thread(db.check_credentials, users, username, password)
-        is_valid = True 
+        is_valid = await asyncio.to_thread(db.check_credentials, users, username, password)
+        # is_valid = True 
         # --- END BYPASS ---
 
         if not is_valid:
@@ -162,7 +162,7 @@ async def join_group(sid,data):
     await sio.enter_room(sid,group_name)
     
     # --- BYPASS ---
-    # await asyncio.to_thread(db.add_member_to_group,groups ,group_name, username)
+    await asyncio.to_thread(db.add_member_to_group,groups ,group_name, username)
     # --- END BYPASS ---
 
     # Tell client to display chat box 
@@ -192,19 +192,38 @@ async def create_group(sid,data):
     username = sid_to_user.get(sid)
     group_name = data.get('group_name')
 
-    if not username or not group_name: 
+    # Validate user is logged in
+    if not username:
+        await sio.emit('create_group_error', {'message': 'You must be logged in to create a group'}, to=sid)
         return
     
-    await asyncio.to_thread(db.create_group_if_missing, groups ,group_name)
+    if not group_name or not group_name.strip():
+        await sio.emit('create_group_error', {'message': 'Group name cannot be empty'}, to=sid)
+        return
+    
+    # Check if group already exists
+    try:
+        await asyncio.to_thread(db.create_group_if_missing, groups, group_name)
+    except Exception as e:
+        # If your create_group_if_missing raises an error when group exists
+        await sio.emit('create_group_error', {'message': f'Group "{group_name}" already exists'}, to=sid)
+        return
+    
+    
+        # Create the group
+    await asyncio.to_thread(db.create_group_if_missing, groups, group_name)
+    
+    # Add creator as member
+    sio.enter_room(sid, group_name)
+    await asyncio.to_thread(db.add_member_to_group, groups, group_name, username)
 
-    sio.enter_room(sid,group_name)
-
-    await asyncio.to_thread(db.add_member_to_group,groups ,group_name, username)
-
-    # Tell client to display chat box 
-    await sio.emit('server_message', f'You created group {group_name}', to=sid)
-    # Tell member in the group that this username has join
-    await sio.emit('server_message', f'{username} has joined the group', to=group_name)
+    await sio.emit('create_group_success', {
+        'message': f'Group "{group_name}" created successfully',
+        'group_name': group_name
+    }, to=sid)
+    
+    # Notify the group (just the creator at this point)
+    await sio.emit('server_message', f'{username} created the group', to=group_name)
 
 
 @sio.event
@@ -222,8 +241,8 @@ async def group_message(sid,data):
     
     # --- BYPASS ---
     # Comment out the database call
-    # await asyncio.to_thread(db.save_group_message, group_messages ,username, group_name, content, timestamp)
-    print("BYPASS: Skipped saving message to DB")
+    await asyncio.to_thread(db.save_group_message, group_messages ,username, group_name, content, timestamp)
+    # print("BYPASS: Skipped saving message to DB")
     # --- END BYPASS ---
 
     await sio.emit('group_message',{'from': username, 'to': group_name ,'content': content,'timestamp': timestamp.isoformat()}, to=group_name)
