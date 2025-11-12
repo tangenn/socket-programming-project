@@ -8,6 +8,8 @@ interface ServerToClientEvents {
   register_error: (data: { message: string }) => void;
   login_success: (data: { username: string }) => void;
   login_error: (data: { message: string }) => void;
+  create_group_success: (data: { message: string; group_name: string }) => void;
+  create_group_error: (data: { message: string }) => void;
   dm: (data: any) => void; // Define 'any' or a proper type
   dm_history: (data: { history: any[] }) => void;
   server_message: (message: string) => void;
