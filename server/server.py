@@ -13,6 +13,8 @@ app = socketio.ASGIApp(sio)
 # --- State Management ---
 user_to_sid = {}
 sid_to_user = {}
+# เก็บว่าผู่เล่นในเกมเลือกออกอะไรยัง
+active_games = {}
 
 # ------Connect DB--------
 # collections
@@ -264,3 +266,130 @@ async def online_users(sid):
 async def get_available_groups(sid):
     group_list = await asyncio.to_thread(db.get_all_groups, groups)
     await sio.emit('available_groups', {'groups': group_list}, to=sid)
+
+# ---- mini game rock paper scissor ------
+# JUST 1 VS 1 version multiplayer not yet implement
+@sio.event 
+async def challenge(sid,data):
+    username = sid_to_user.get(sid)
+    opponent = data.get('opponent')
+
+    opponent_sid = user_to_sid.get(opponent)
+    # check opponent online or not 
+    if not opponent_sid:
+        sio.emit('challenge_failed',{'error': f'User {opponent} is offline.'} , to = sid)
+
+    # show pop up challenge or something
+    await sio.emit('challenge_message',f'User {username} challenge you', to=opponent_sid)
+
+# response for challenge
+@sio.event
+async def challenge_response(sid,data):
+    # opponent will accept or reject challenge
+    opponent_id = sid_to_user.get(sid)
+    # data = { 'challenge_name': 'username', 'accepted': True }
+    challenger_name = data.get('challenger_name')
+    accepted = data.get('accepted')
+
+    challenger_id = user_to_sid.get(challenger_name)
+
+    opponent_name = sid_to_user.get(opponent_id)
+
+    if not challenger_id:
+        print(f"Challenger {challenger_name} is no longer online.")
+        return
+
+    if accepted:
+        print(f"Game starting between {challenger_name} and {opponent_name}")
+        print(f"Saisho wa guu . Janken pon!")
+
+        game_room_id = f"game_{challenger_id}_{opponent_id}"
+
+        # opponent join private room
+        sio.enter_room(sid,game_room_id)
+
+        # challenger join private room
+        sio.enter_room(challenger_id,game_room_id)
+
+        active_games[game_room_id] = {
+            'players': [challenger_id, opponent_id],
+            'selected': {}
+        }
+
+        sio.emit('game_started', {'game_room': game_room_id, 'players': [challenger_id, game_room_id]}, room=game_room_id)
+
+# selected rock paper scissor
+# ฝากตั้งชื่อหน่อย
+
+
+def calculate_rps_winner(p1_id, p1_move, p2_id, p2_move):
+    if p1_move == p2_move:
+        return {'draw': True, 'winner': None, 'loser': None}
+
+    winning_moves = {
+        'rock': 'scissors',
+        'scissors': 'paper',
+        'paper': 'rock'
+    }
+
+    if winning_moves[p1_move] == p2_move:
+        # Player 1 wins
+        return {'draw': False, 'winner': p1_id, 'loser': p2_id}
+    else:
+        # Player 2 wins
+        return {'draw': False, 'winner': p2_id, 'loser': p1_id}
+    
+
+@sio.event
+async def selectedRPS(sid,data):
+    try:
+         # data = { 'game_room_id': 'game_room_id', 'selected': Rock / Paper / Scissor }
+        username = sid_to_user.get(sid)
+        game_room_id = data.get('game_room_id')
+        selectedRPS = data.get('selected')
+        
+        # Find the game
+        game = active_games[game_room_id]
+        
+    except KeyError:
+        print("Invalid game or session")
+        return
+    
+    if sid not in game['selected']:
+        game['selected'][sid] = selectedRPS
+        print(f"User {sid} played {selectedRPS} in {game_room_id}")
+
+        # find opponent id
+        opponent_sid = game['players'][0] if game['players'][1] == sid else game['players'][1]
+        # Tell them "Opponent has selected"
+        sio.emit('opponent_selected', {}, to=opponent_sid)
+            
+    # Both player selected
+    if len(game['selected']) == 2:
+        print(f"Both players have selected in {game_room_id}. Calculating result.")
+        
+        # We have both moves, time to calculate the result
+        p1_id = game['players'][0]
+        p2_id = game['players'][1]
+        
+        p1_selected = game['selected'][p1_id]
+        p2_selected = game['selected'][p2_id]
+        
+        # Calculate the winner
+        result = calculate_rps_winner(p1_id, p1_selected, p2_id, p2_selected)
+        
+        # Send the final result to BOTH players in the room
+        sio.emit('game_result', {
+            'result': result,
+            'player_one_selected': p1_selected,
+            'player_two_selected': p2_selected
+        }, to=game_room_id)
+
+        #if want to store log 
+        # timestamp = datetime.now(timezone.utc)
+        # await asyncio.to_thread(db.save_game_result,  ,result, p1_id, p2_id, timestamp)
+
+
+#if want to get score board 
+@sio.event
+async def getScoreBoard(sid,data):
