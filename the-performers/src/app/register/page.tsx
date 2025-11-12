@@ -2,6 +2,7 @@ import RegisterCard from "@/components/RegisterCard";
 import Link from "next/link";
 
 export default function RegisterPage() {
+
   return (
     <div className="min-h-screen bg-gray-300 flex flex-col">
          

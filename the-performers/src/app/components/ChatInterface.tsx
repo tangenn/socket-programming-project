@@ -2,13 +2,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import io from "socket.io-client";
-
-// --- Connection ---
-// We create the socket instance *outside* the component
-// so it doesn't reconnect every time the component re-renders.
-// Replace with your server URL
-const socket = io("http://172.20.10.2:8000");
 
 export default function ChatInterface() {
   // --- State Variables ---
