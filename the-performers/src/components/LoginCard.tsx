@@ -33,7 +33,7 @@ export default function LoginCard() {
 
     // Listen for the 'login_error' event
     const onLoginError = (data: { message: string }) => {
-      console.error('Login error:', data.message);
+      console.log('Login error:', data.message);
       // On error, display the message from the server
       setErrorMessage(data.message);
     };
@@ -113,7 +113,7 @@ export default function LoginCard() {
         {/* Set button type to "submit" to trigger the form's onSubmit */}
         <button
           type="submit"
-          className="w-full py-2 rounded-md bg-white font-semibold shadow-sm hover:bg-gray-100 transition"
+          className="cursor-pointer w-full py-2 rounded-md bg-white font-semibold shadow-sm hover:bg-gray-100 transition"
         >
           SIGN IN
         </button>
