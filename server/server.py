@@ -43,6 +43,9 @@ async def disconnect(sid) :
 
         print(f'Client disconnected: {username} ({sid})')
 
+        online_users_list = list(user_to_sid.keys())
+        await sio.emit('online_users', {'users': online_users_list})
+
 
 @sio.event
 async def register(sid,data):
@@ -117,6 +120,9 @@ async def login(sid,data):
 
         print(f'User {username} logged in with sid {sid}')
         await sio.emit('login_success', {'username': username}, to=sid)
+
+        online_users_list = list(user_to_sid.keys())
+        await sio.emit('online_users', {'users': online_users_list})
 
     except Exception as e:
         # --- THIS IS THE CRASH-PROOFING ---
