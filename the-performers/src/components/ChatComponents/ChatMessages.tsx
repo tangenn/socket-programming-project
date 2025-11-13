@@ -37,7 +37,7 @@ export function ChatMessages({
     <div
       ref={scrollRef}
       className={`
-        flex flex-col gap-6 p-6 
+        flex flex-col gap-8 p-6 
         rounded-3xl overflow-y-auto 
         comic-panel bg-white/70 backdrop-blur 
         transition-all duration-300 
@@ -45,115 +45,111 @@ export function ChatMessages({
       `}
     >
       {messages.map((m) => {
-        // ----------------------------
-        // 🔥 Challenge banner UI
-        // ----------------------------
-        // 🔥 Challenge banner (START)
-if (m.type === "challenge") {
-  const challengeText = isGroup
-    ? m.isSelf
-      ? "You challenge others!"
-      : `${m.sender} challenges you!`
-    : m.isSelf
-    ? `You challenge ${m.opponent}!`
-    : `${m.sender} challenges you!`;
+        /* ================================
+           🔥  CHALLENGE BANNER
+        ================================= */
+        if (m.type === "challenge") {
+          const challengeText = isGroup
+            ? m.isSelf
+              ? "You challenge others!"
+              : `${m.sender} challenges you!`
+            : m.isSelf
+            ? `You challenge ${m.opponent}!`
+            : `${m.sender} challenges you!`;
 
-  return (
-    <div key={m.id} className="flex justify-center w-full">
-      <div className="comic-card max-w-xl w-full text-center">
+          return (
+            <div key={m.id} className="flex justify-center w-full">
+              <div className="comic-card max-w-2xl w-full text-center p-6">
 
-        {/* Action Header */}
-        <div className="comic-banner-title mb-2">
-          ⚡ Challenge Incoming!
-        </div>
+                <div className="comic-banner-title mb-3">
+                  ⚡ Challenge Incoming!
+                </div>
 
-        <p className="font-semibold text-lg mb-4">{challengeText}</p>
+                <p className="font-semibold text-lg mb-4">{challengeText}</p>
 
-        {!m.isSelf && (
-          <div className="flex justify-center gap-4 mt-2">
-            {waitingChoice ? (
-              <p className="italic text-gray-600">Waiting for your move…</p>
-            ) : (
-              ["Rock", "Paper", "Scissor"].map((choice) => (
-                <button
-                  key={choice}
-                  onClick={() => handleChoice(choice)}
-                  className="comic-btn bg-yellow-200"
-                >
-                  {choice}
-                </button>
-              ))
-            )}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
+                {!m.isSelf && (
+                  <div className="flex justify-center gap-4">
+                    {waitingChoice ? (
+                      <p className="italic text-gray-600">Waiting for your move…</p>
+                    ) : (
+                      ["Rock", "Paper", "Scissor"].map((choice) => (
+                        <button
+                          key={choice}
+                          onClick={() => handleChoice(choice)}
+                          className="comic-choice-btn"
+                        >
+                          {choice}
+                        </button>
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        }
 
-        // ----------------------------
-        // 🔥 Challenge accepted
-        // ----------------------------
-// 🔥 Challenge accepted banner
-if (m.type === "challenge_accepted") {
-  let text =
-    isGroup && m.participants?.length === 2
-      ? `${m.participants[0]} accepted ${m.participants[1]}'s challenge!`
-      : m.isSelf
-      ? `You accepted ${m.opponent}'s challenge!`
-      : `${m.sender} accepted your challenge!`;
+        /* ================================
+           🔵  CHALLENGE ACCEPTED BANNER
+        ================================= */
+        if (m.type === "challenge_accepted") {
+          let text =
+            isGroup && m.participants?.length === 2
+              ? `${m.participants[0]} accepted ${m.participants[1]}'s challenge!`
+              : m.isSelf
+              ? `You accepted ${m.opponent}'s challenge!`
+              : `${m.sender} accepted your challenge!`;
 
-  return (
-    <div key={m.id} className="flex justify-center w-full">
-      <div className="comic-card bg-blue-100 max-w-xl w-full text-center">
-        <div className="comic-banner-title text-blue-900 mb-2">
-          💥 Challenge Accepted!
-        </div>
-        <p className="font-bold text-blue-900 text-lg">{text}</p>
-      </div>
-    </div>
-  );
-}
+          return (
+            <div key={m.id} className="flex justify-center w-full">
+              <div className="comic-card bg-blue-100 max-w-2xl w-full text-center p-6">
+                <div className="comic-banner-title text-blue-900 mb-3">
+                  💥 Challenge Accepted!
+                </div>
+                <p className="font-bold text-blue-900 text-lg">{text}</p>
+              </div>
+            </div>
+          );
+        }
 
-        // ----------------------------
-        // 🔥 Challenge result
-        // ----------------------------
-// 🔥 Challenge result banner
-if (m.type === "challenge_result") {
-  const parts = m.participants ?? [];
-  const isDraw = parts.length === 0;
+        /* ================================
+           🔥  CHALLENGE RESULT BANNER
+        ================================= */
+        if (m.type === "challenge_result") {
+          const parts = m.participants ?? [];
+          const isDraw = parts.length === 0;
 
-  let text = isDraw
-    ? "It's a draw!"
-    : parts[0] === "You"
-    ? `You won! ${parts[1]} lost.`
-    : parts[1] === "You"
-    ? `You lost. ${parts[0]} won.`
-    : `${parts[0]} defeated ${parts[1]}!`;
+          let text = isDraw
+            ? "It's a draw!"
+            : parts[0] === "You"
+            ? `You won! ${parts[1]} lost.`
+            : parts[1] === "You"
+            ? `You lost. ${parts[0]} won.`
+            : `${parts[0]} defeated ${parts[1]}!`;
 
-  const color = isDraw
-    ? "bg-yellow-200"
-    : parts[0] === "You"
-    ? "bg-green-200"
-    : parts[1] === "You"
-    ? "bg-red-200"
-    : "bg-white";
+          const color = isDraw
+            ? "bg-yellow-200"
+            : parts[0] === "You"
+            ? "bg-green-200"
+            : parts[1] === "You"
+            ? "bg-red-200"
+            : "bg-white";
 
-  return (
-    <div key={m.id} className="flex justify-center w-full">
-      <div className={`comic-card ${color} max-w-xl w-full text-center`}>
-        <div className="comic-banner-title mb-2">
-          {isDraw ? "😮 It's a Draw!" : "🔥 Battle Result!"}
-        </div>
-        <p className="font-bold text-lg">{text}</p>
-      </div>
-    </div>
-  );
-}
+          return (
+            <div key={m.id} className="flex justify-center w-full">
+              <div className={`comic-card ${color} max-w-2xl w-full text-center p-6`}>
+                <div className="comic-banner-title mb-3">
+                  {isDraw ? "😮 It's a Draw!" : "🔥 Battle Result!"}
+                </div>
+                <p className="font-bold text-lg">{text}</p>
+              </div>
+            </div>
+          );
+        }
 
-        // ----------------------------
-        // 🔥 Normal incoming message
-        // ----------------------------
+        /* ================================
+           TEXT MESSAGES — INCOMING
+        ================================= */
         if (m.type === "text" && !m.isSelf) {
           return (
             <div key={m.id} className="flex items-start gap-3">
@@ -182,9 +178,9 @@ if (m.type === "challenge_result") {
           );
         }
 
-        // ----------------------------
-        // 🔥 Normal outgoing message
-        // ----------------------------
+        /* ================================
+           TEXT MESSAGES — OUTGOING
+        ================================= */
         if (m.type === "text" && m.isSelf) {
           return (
             <div key={m.id} className="flex justify-end items-start">
@@ -192,7 +188,7 @@ if (m.type === "challenge_result") {
                 <div className="flex gap-2 items-end">
                   <span className="text-xs text-gray-600">{m.timestamp}</span>
 
-                  <div className="comic-bubble bg-green-100 text-gray-900 px-4 py-2">
+                  <div className="comic-bubble bg-red-100 text-gray-900 px-4 py-2">
                     {m.text}
                   </div>
                 </div>
