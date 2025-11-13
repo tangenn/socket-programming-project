@@ -63,11 +63,22 @@ export const otherGroups: Group[] = [
 
 
 export default function HomePage() {
-  
   return (
-    <div className="min-h-screen bg-gray-300 flex justify-center gap-10 pt-20 px-6">
-      <UsersPanel currentUser={currentUser} connectedUsers={connectedUsers} />
-      <GroupChatsPanel joinedGroups={joinedGroups} otherGroups={otherGroups} />
+    <div className="relative min-h-screen">
+      
+      {/* Background */}
+      <div
+        className="absolute inset-0 bg-[url('/backgrounds/background_Dramatic.jpg')] bg-cover bg-center bg-fixed"
+      />
+
+      {/* Optional dark overlay */}
+      <div className="absolute inset-0 bg-black/40" />
+
+      {/* Content */}
+      <div className="relative z-10 flex justify-center gap-10 pt-20 px-6">
+        <UsersPanel currentUser={currentUser} connectedUsers={connectedUsers} />
+        <GroupChatsPanel joinedGroups={joinedGroups} otherGroups={otherGroups} />
+      </div>
     </div>
   );
 }

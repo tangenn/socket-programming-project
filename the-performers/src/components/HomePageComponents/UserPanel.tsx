@@ -18,43 +18,79 @@ export function UsersPanel({ currentUser, connectedUsers }: UsersPanelProps) {
   const router = useRouter();
 
   return (
-    <div className="bg-gray-200/60 rounded-3xl shadow-md p-8 w-full max-w-md max-h-[70vh] overflow-y-auto">
+    <div
+      className="
+        bg-white/90 rounded-[32px] p-8 
+        border-4 border-black
+        shadow-[8px_8px_0px_#000]
+        w-full max-w-md max-h-[70vh] overflow-y-auto
+      "
+    >
       {/* Current User */}
-      <div className="bg-white w-full p-4 rounded-xl shadow flex items-center mb-3">
+      <div
+        className="
+          flex items-center gap-3 bg-white 
+          p-4 rounded-xl mb-4
+          border-4 border-black
+          shadow-[4px_4px_0px_#000]
+        "
+      >
         <img
           src={getAvatar(currentUser.avatarId)}
           alt="pfp"
-          className="w-10 h-10 rounded-full object-cover mr-3"
+          className="w-12 h-12 rounded-full object-cover"
         />
-        <span className="font-semibold flex-1">{currentUser.name}</span>
+        <span className="font-semibold flex-1 text-lg">
+          {currentUser.name}
+        </span>
       </div>
 
       {/* Change Avatar */}
       <button
         onClick={() => router.push("/avatarSelection")}
-        className="bg-white px-4 py-2 rounded-md shadow-sm mb-6 font-semibold hover:bg-gray-100 transition"
+        className="
+          w-full bg-white py-2 rounded-xl 
+          border-4 border-black shadow-[4px_4px_0px_#000]
+          font-bold hover:translate-y-1 transition
+        "
       >
-        Change your avatar
+        Change Avatar
       </button>
 
-      <h2 className="font-semibold mb-3">Connected Users</h2>
+      {/* Connected Users header */}
+      <h2
+        className="mt-6 mb-3 text-xl font-bold tracking-wide"
+        style={{ fontFamily: "'Bangers', sans-serif" }}
+      >
+        CONNECTED USERS
+      </h2>
 
-      {/* Connected Users */}
+      {/* User List */}
       {connectedUsers.map((u) => (
         <div
           key={u.name}
-          className="bg-white w-full p-4 mb-3 rounded-xl shadow flex items-center"
+          className="
+            flex items-center gap-3 p-3 mb-3 
+            bg-white rounded-xl
+            border-4 border-black shadow-[4px_4px_0px_#000]
+          "
         >
           <img
             src={getAvatar(u.avatarId)}
-            alt="pfp"
-            className="w-10 h-10 rounded-full object-cover mr-3"
+            alt={u.name}
+            className="w-10 h-10 rounded-full object-cover"
           />
           <span className="font-semibold flex-1">{u.name}</span>
 
           <button
-            onClick={() => router.push(`/private/${encodeURIComponent(u.name)}`)}
-            className="px-3 py-1 bg-gray-200 rounded-md font-medium hover:bg-gray-300 transition"
+            onClick={() =>
+              router.push(`/private/${encodeURIComponent(u.name)}`)
+            }
+            className="
+              px-3 py-1 bg-white rounded-lg 
+              border-2 border-black shadow-[2px_2px_0px_#000]
+              font-bold hover:translate-y-0.5 transition
+            "
           >
             Chat
           </button>
