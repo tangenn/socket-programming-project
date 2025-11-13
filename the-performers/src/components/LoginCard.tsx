@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { socket } from '@/socket';
+import { setAuth } from '@/lib/auth';
 
 export default function LoginCard() {
   // State for the input fields
@@ -24,8 +25,8 @@ export default function LoginCard() {
     // Listen for the 'login_success' event
     const onLoginSuccess = (data: { username: string }) => {
       console.log('Login successful:', data.username);
-      // Store username in localStorage
-      localStorage.setItem('username', data.username);
+      // Store username in both localStorage and cookie
+      setAuth(data.username);
       // On success, clear errors and redirect
       setErrorMessage('');
       router.push('/'); // Redirect to your chat or dashboard page

@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { socket } from "@/socket";
 import { useRouter } from "next/navigation";
+import { clearAuth, getUsername, setAuth } from "@/lib/auth";
 
 export default function Navbar() {
   const [isConnected, setIsConnected] = useState(false);
@@ -14,8 +15,8 @@ export default function Navbar() {
     setIsMounted(true);
     setIsConnected(socket.connected);
     
-    // Check localStorage for existing username
-    const storedUsername = localStorage.getItem('username');
+    // Check for existing username from localStorage or cookie
+    const storedUsername = getUsername();
     if (storedUsername) {
       setUsername(storedUsername);
     }
@@ -31,7 +32,7 @@ export default function Navbar() {
     // Listen for login success to update username
     function onLoginSuccess(data: { username: string }) {
       setUsername(data.username);
-      localStorage.setItem('username', data.username);
+      setAuth(data.username);
     }
 
     // Add the listeners
@@ -51,12 +52,12 @@ export default function Navbar() {
   const handleLogout = () => {
     // Disconnect the socket - server will handle cleanup on disconnect
     socket.disconnect();
-    // Clear username from state and localStorage
+    // Clear username from state and auth (localStorage + cookies)
     setUsername(null);
-    localStorage.removeItem('username');
+    clearAuth();
     // Redirect to home and refresh
     router.push('/');
-     window.location.reload();
+    window.location.reload();
   };
 
   return (
@@ -69,12 +70,12 @@ export default function Navbar() {
         {username ? (
           <button 
             onClick={handleLogout}
-            className="hover:opacity-70 transition"
+            className="hover:opacity-70 transition cursor-pointer"
           >
             Log out of {username}
           </button>
         ) : (
-          <Link href="/login" className="hover:opacity-70 transition">Login</Link>
+          <Link href="/login" className="hover:opacity-70 transition cursor-pointer">Login</Link>
         )}
       </div>
 

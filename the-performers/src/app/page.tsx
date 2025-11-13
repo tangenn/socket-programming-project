@@ -5,6 +5,7 @@ import { socket } from "@/socket";
 import { GroupChatsPanel } from "@/components/HomePageComponents/GroupChatsPanel";
 import { UsersPanel } from "@/components/HomePageComponents/UserPanel";
 import Link from "next/link";
+import { setAuth, getUsername } from "@/lib/auth";
 
 export default function HomePage() {
   const [username, setUsername] = useState<string | null>(null);
@@ -13,8 +14,8 @@ export default function HomePage() {
   useEffect(() => {
     setIsMounted(true);
 
-    // Check localStorage for existing username
-    const storedUsername = localStorage.getItem('username');
+    // Check for existing username from localStorage or cookie
+    const storedUsername = getUsername();
     if (storedUsername) {
       setUsername(storedUsername);
     }
@@ -22,7 +23,7 @@ export default function HomePage() {
     // Listen for login success
     function onLoginSuccess(data: { username: string }) {
       setUsername(data.username);
-      localStorage.setItem('username', data.username);
+      setAuth(data.username);
     }
 
     socket.on('login_success', onLoginSuccess);
