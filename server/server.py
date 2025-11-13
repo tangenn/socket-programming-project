@@ -251,7 +251,7 @@ async def group_message(sid,data):
         "participants": participants
     }
 
-    print(f"Received group {group_name} message: {message_payload}")
+    print(f"Received group {group_name} +message: {message_payload}")
 
     if not sender or not group_name or not text:
         await sio.emit('group_message_error', {'message': 'Invalid group message data'}, to=sid)
@@ -282,6 +282,11 @@ async def online_users(sid):
 async def get_available_groups(sid):
     group_list = await asyncio.to_thread(db.get_all_groups, groups)
     await sio.emit('available_groups', {'groups': group_list}, to=sid)
+
+@sio.event
+async def getMe(sid) :
+    username = sid_to_user.get(sid)
+    await sio.emit('me', {'username': username}, to=sid)
 
 # ---- mini game rock paper scissor ------
 # JUST 1 VS 1 version multiplayer not yet implement

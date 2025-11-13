@@ -38,7 +38,7 @@ def connect_db() :
         print("Warning: cannot connect to MongoDB:", e)
         return None, None, None, None
     
-def add_user_to_db(users, username, password, avatarId):
+def add_user_to_db(users, username, password, avatarId, online):
     try:
         doc = {
             "username": username,
