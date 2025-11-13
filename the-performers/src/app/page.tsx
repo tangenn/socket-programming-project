@@ -50,14 +50,14 @@ export const joinedGroups: Group[] = [
 
 export const otherGroups: Group[] = [
   {
-    name: "Philosophy Club",
+    name: "shiba1",
     members: [
       { name: "MHEE", avatarId: 1 },
       { name: "AEA", avatarId: 2 },
     ],
   },
   {
-    name: "ML Discussion Room",
+    name: "shiba2",
     members: [],
   },
 ];

@@ -22,5 +22,9 @@ export const avatarMap: Record<number, string> = {
 };
 
 export function getAvatar(id?: number): string {
-  return avatarMap[id ?? 1] ?? "/avatars/fallback.png";
+  // if id is undefined OR not in avatarMap → use fallback
+  if (!id || !avatarMap[id]) {
+    return "/avatars/fallback.png";
+  }
+  return avatarMap[id];
 }

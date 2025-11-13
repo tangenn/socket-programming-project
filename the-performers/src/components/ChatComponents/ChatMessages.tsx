@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { avatarMap } from "@/utils/avatarMap";
+import { getAvatar } from "@/utils/avatarMap";
 
 export type MessageType = {
   id: string;
@@ -38,20 +38,22 @@ export function ChatMessages({
       }`}
     >
       {messages.map((m) => {
-        // 🧱 Challenge initiated (now includes self too, but no buttons)
+        // Challenge initiated
         if (m.type === "challenge") {
           const challengeText = isGroup
             ? m.isSelf
               ? "You challenge others"
               : `${m.sender} challenges you`
             : m.isSelf
-              ? `You challenge ${m.opponent}`
-              : `${m.sender} challenges you`;
+            ? `You challenge ${m.opponent}`
+            : `${m.sender} challenges you`;
 
           return (
             <div key={m.id} className="w-full flex justify-center my-4">
               <div className="bg-white px-8 py-6 rounded-2xl shadow text-center max-w-lg w-full">
-                <p className="font-semibold text-gray-800 mb-3">{challengeText}</p>
+                <p className="font-semibold text-gray-800 mb-3">
+                  {challengeText}
+                </p>
                 {!m.isSelf && (
                   <div className="flex justify-center gap-4">
                     {waitingChoice ? (
@@ -74,14 +76,20 @@ export function ChatMessages({
           );
         }
 
-        // 🧩 Challenge accepted
+        // Challenge accepted
         if (m.type === "challenge_accepted") {
           let acceptText;
           if (isGroup) {
-            acceptText =
-              m.participants && m.participants.length === 2
-                ? `${m.participants[0]} accepted ${m.participants[1]}'s challenge`
-                : `${m.sender} accepted a challenge`;
+            if (m.participants && m.participants.length === 2) {
+              const a = m.participants[0];
+              const b =
+                m.participants[1] === "You"
+                  ? "your"
+                  : `${m.participants[1]}'s`;
+              acceptText = `${a} accepted ${b} challenge`;
+            } else {
+              acceptText = `${m.sender} accepted a challenge`;
+            }
           } else {
             acceptText = m.isSelf
               ? `You accepted ${m.opponent}'s challenge`
@@ -97,7 +105,7 @@ export function ChatMessages({
           );
         }
 
-        // 🏆 Challenge result
+        // Challenge result
         if (m.type === "challenge_result") {
           const participants = m.participants ?? [];
           const isDraw = participants.length === 0;
@@ -133,64 +141,57 @@ export function ChatMessages({
           );
         }
 
-        // 💬 Normal messages
+        // Normal text messages
         if (m.type === "text") {
-          return (
-            <div
-              key={m.id}
-              className={`flex items-start ${
-                m.isSelf ? "justify-end" : "justify-start"
-              }`}
-            >
-              {/* Other user's message */}
-              {!m.isSelf && (
-                <>
-                  <img
-                    src={avatarMap[m.avatarId ?? 1]}
-                    alt={m.sender}
-                    className="w-8 h-8 rounded-full mr-3 self-end"
-                  />
-                  <div className="flex flex-col items-start">
-                    {isGroup && (
-                      <span className="text-sm text-gray-700 font-semibold mb-1">
-                        {m.sender}
-                      </span>
-                    )}
-                    <div className="flex flex-col items-start max-w-[70%]">
-                      <div className="px-4 py-2 rounded-xl shadow bg-white text-gray-800 min-w-[3rem]">
-                        <p className="break-words">{m.text}</p>
-                      </div>
-                      <span className="text-xs text-gray-500 mt-1">
-                        {m.timestamp}
-                      </span>
-                    </div>
-                  </div>
-                </>
-              )}
+          if (!m.isSelf) {
+            // Incoming message
+            return (
+              <div key={m.id} className="flex justify-start items-start">
+                <img
+                  src={getAvatar(m.avatarId ?? 1)}
+                  alt={m.sender}
+                  className="w-10 h-10 rounded-full mr-3 self-start"
+                />
 
-              {/* Self message */}
-              {m.isSelf && (
-                <>
-                  <div className="flex flex-col items-end max-w-[70%]">
-                    <div className="px-4 py-2 rounded-xl shadow bg-blue-500 text-white min-w-[3rem]">
-                      <p className="break-words">{m.text}</p>
+                <div className="flex flex-col max-w-[70%]">
+                  {isGroup && (
+                    <span className="text-sm text-gray-700 font-semibold mb-1">
+                      {m.sender}
+                    </span>
+                  )}
+
+                  <div className="flex items-start gap-2">
+                    <div className="px-4 py-2 rounded-xl shadow bg-white text-gray-800 inline-block max-w-full">
+                      <p className="whitespace-normal break-words">{m.text}</p>
                     </div>
-                    <span className="text-xs text-gray-500 mt-1">
+
+                    <span className="text-xs text-gray-500 self-end ml-1">
                       {m.timestamp}
                     </span>
                   </div>
-                  <img
-                    src={avatarMap[m.avatarId ?? 1]}
-                    alt={m.sender}
-                    className="w-8 h-8 rounded-full ml-3 self-end"
-                  />
-                </>
-              )}
-            </div>
-          );
+                </div>
+              </div>
+            );
+          } else {
+            // Outgoing message
+            return (
+              <div key={m.id} className="flex justify-end items-start">
+                <div className="flex flex-col max-w-[70%] items-end">
+                  <div className="flex items-start gap-2">
+                    <span className="text-xs text-gray-500 self-end mr-1">
+                      {m.timestamp}
+                    </span>
+                    <div className="px-4 py-2 rounded-xl shadow bg-green-100 text-gray-800 inline-block max-w-full">
+                      <p className="whitespace-normal break-words">{m.text}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          }
         }
 
-        return null;
+        return null; // default fallback
       })}
     </div>
   );
