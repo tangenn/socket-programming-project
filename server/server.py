@@ -230,24 +230,40 @@ async def create_group(sid,data):
 
 @sio.event
 async def group_message(sid,data):
-    username = sid_to_user.get(sid)
     group_name = data.get('group_name')
-    content = data.get('content')
+    id = data.get('id')
+    sender = sid_to_user.get(sid)
+    avatarId = data.get('avatarId')
     timestamp = datetime.now(timezone.utc)
+    type = "text"
+    text = data.get("text")
+    opponent = None
+    participants = None
 
-    print(username, group_name, content, timestamp)
+    message_payload = {
+        "id": id,
+        "sender": sender,
+        "avatarId": avatarId,
+        "timestamp": timestamp,
+        "type": type,
+        "text": text,
+        "opponent": opponent,
+        "participants": participants
+    }
 
-    if not username or not group_name or not content:
+    print(f"Received group {group_name} message: {message_payload}")
+
+    if not sender or not group_name or not text:
         await sio.emit('group_message_error', {'message': 'Invalid group message data'}, to=sid)
         return
     
     # --- BYPASS ---
     # Comment out the database call
-    await asyncio.to_thread(db.save_group_message, group_messages ,username, group_name, content, timestamp)
+    await asyncio.to_thread(db.save_group_message, group_messages, group_name, id ,sender, avatarId, timestamp, type, text, opponent, participants)
     # print("BYPASS: Skipped saving message to DB")
     # --- END BYPASS ---
 
-    await sio.emit('group_message',{'from': username, 'to': group_name ,'content': content,'timestamp': timestamp.isoformat()}, to=group_name)
+    await sio.emit('group_message',{'from': sender, 'to': group_name ,'content': text,'timestamp': timestamp.isoformat()}, to=group_name)
 
 @sio.event
 async def group_history(sid, data):
@@ -272,15 +288,17 @@ async def get_available_groups(sid):
 @sio.event 
 async def challenge(sid,data):
     username = sid_to_user.get(sid)
-    opponent = data.get('opponent')
+    
+    group_name = data.get('group_name')
+    id = data.get('id')
+    sender = sid_to_user.get(sid)
+    avatarId = data.get('avatarId')
+    timestamp = datetime.now(timezone.utc)
+    type = "text"
+    text = data.get("text")
+    opponent = None
+    participants = None
 
-    opponent_sid = user_to_sid.get(opponent)
-    # check opponent online or not 
-    if not opponent_sid:
-        sio.emit('challenge_failed',{'error': f'User {opponent} is offline.'} , to = sid)
-
-    # show pop up challenge or something
-    await sio.emit('challenge_message',f'User {username} challenge you', to=opponent_sid)
 
 # response for challenge
 @sio.event
@@ -301,7 +319,7 @@ async def challenge_response(sid,data):
 
     if accepted:
         print(f"Game starting between {challenger_name} and {opponent_name}")
-        print(f"Saisho wa guu . Janken pon!")
+        print(f"Saisho wa guu . Janken pon!") #WHAT
 
         game_room_id = f"game_{challenger_id}_{opponent_id}"
 

@@ -30,6 +30,7 @@ def connect_db() :
         # Ensure username and group_name are unique
         users.create_index("username", unique=True)
         groups.create_index("group_name", unique=True)
+        group_messages.create_index("group_name", unique=True)
         # +++++++++++++++++++++++++++++++++++++++++++++++++
         print("Pinged your deployment. You successfully connected to MongoDB!")
         return users, dm_messages, group_messages, groups
@@ -37,11 +38,12 @@ def connect_db() :
         print("Warning: cannot connect to MongoDB:", e)
         return None, None, None, None
     
-def add_user_to_db(users, username, password):
+def add_user_to_db(users, username, password, avatarId):
     try:
         doc = {
             "username": username,
-            "password": password
+            "password": password,
+            "avatar_id": avatarId
         }
         users.update_one({"username": username}, {"$set": doc}, upsert=True)
         print("Added user to DB:", username)
@@ -94,16 +96,24 @@ def get_dm_messages(dm_messages, sender, receiver):
         return []
 
 
-def save_group_message(group_messages, sender, group_name, content, timestamp):
+def save_group_message(group_messages, group_name, id ,sender, avatarId, timestamp, type, text, opponent, participants):
     """Persist a message document for group."""
     try:
         doc = {
+            "id": id,
             "sender": sender,
-            "group_name": group_name,
-            "content": content,
-            "timestamp": timestamp
+            "avatarId": avatarId,
+            "timestamp": timestamp,
+            "type": type, #"text" | "challenge" | "challenge_accepted" | "challenge_result"
+            "text": text,
+            "opponent": opponent,
+            "participants": participants
         }
-        group_messages.insert_one(doc)
+        group_messages.update_one(
+            {"group_name": group_name},
+            {"$push": {"message_data": doc}},
+            upsert=True
+        )
         print("Saved message to DB:", doc)
     except Exception as e:
         print("Failed to save message to DB:", e)
@@ -111,21 +121,28 @@ def save_group_message(group_messages, sender, group_name, content, timestamp):
 def get_group_messages(group_messages, group_name):
     """Retrieve message documents for a group."""
     try:
-        docs = group_messages.find({
-            "group_name": group_name
-        }).sort("timestamp", 1)  # Sort by timestamp ascending
-        return list(docs)
+        doc = group_messages.find_one({"group_name": group_name})
+        if doc and "message_data" in doc:
+            return doc["message_data"]  # Return array of messages
+        return []
     except Exception as e:
         print("Failed to retrieve messages from DB:", e)
         return []
 
-def create_group_if_missing(groups, group_name):
+def create_group_if_missing(groups, groups_message, group_name):
     try:
         groups.update_one(
             {"group_name": group_name},
             {"$setOnInsert": {"group_name": group_name, "members": []}},
             upsert=True
         )
+
+        groups_message.update_one(
+            {"group_name": group_name},
+            {"$setOnInsert": {"group_name": group_name, "message_data": []}},
+            upsert=True
+        )
+
         print(f"Group '{group_name}' created or already exists.")
     except DuplicateKeyError:
         print(f"Group '{group_name}' already exists.")
