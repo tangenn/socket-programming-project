@@ -138,6 +138,7 @@ async def dm(sid ,data):
     receiver = data.get('receiver')
     content = data.get('content')
     timestamp = datetime.now(timezone.utc)
+    
     if not sender or not receiver or not content:
         await sio.emit('dm_error', {'message': 'Invalid DM data'}, to=sid)
         return
@@ -148,7 +149,7 @@ async def dm(sid ,data):
         'sender': sender,
         'receiver': receiver,
         'content': content,
-        'timestamp': timestamp
+        'timestamp': timestamp.isoformat()
     }
 
     # receiver online
@@ -266,7 +267,7 @@ async def group_message(sid,data):
         "id": id,
         "sender": sender,
         "avatarId": avatarId,
-        "timestamp": timestamp,
+        "timestamp": timestamp.isoformat(),
         "type": type,
         "text": text,
         "opponent": opponent,
