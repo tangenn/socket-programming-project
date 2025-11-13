@@ -85,11 +85,13 @@ const privateChatMessages: MessageType[] = [
   },
 ];
 
+const userAvatarId = 15;
+
 
 export default function Page({ params }: { params: { username: string } }) {
   const { username } = params;
 
  
 
-  return <PrivateChatLayout user={{ name: username }} messages={privateChatMessages} />;
+  return <PrivateChatLayout user={{ name: username, avatarId: userAvatarId}} messages={privateChatMessages} />;
 }

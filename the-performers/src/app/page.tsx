@@ -1,7 +1,6 @@
 import { GroupChatsPanel } from "@/components/HomePageComponents/GroupChatsPanel";
 import { UsersPanel } from "@/components/HomePageComponents/UserPanel";
 
-import { getAvatar } from "@/utils/avatarMap";
 
 // Mock Data
 export type User = {
@@ -9,7 +8,7 @@ export type User = {
   avatarId?: number;
 };
 
-// 👥 Group type for GroupChatsPanel
+// Group type for GroupChatsPanel
 export type Group = {
   name: string;
   members: User[];
