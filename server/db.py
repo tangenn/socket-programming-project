@@ -94,7 +94,13 @@ def get_dm_messages(dm_messages, sender, receiver):
                 {"sender": sender, "receiver": receiver},
                 {"sender": receiver, "receiver": sender}
             ]
-        }).sort("timestamp", 1)  # Sort by timestamp ascending
+            },{
+            '_id': 0,
+            'sender': 1,
+            'receiver': 1,
+            'content': 1,
+            'timestamp': 1
+            }).sort("timestamp", 1)  # Sort by timestamp ascending
         return list(docs)
     except Exception as e:
         print("Failed to retrieve messages from DB:", e)

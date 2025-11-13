@@ -165,7 +165,15 @@ async def dm_history(sid, data) :
     sender = sid_to_user.get(sid)
     receiver = data.get('receiver')
     history = await asyncio.to_thread(db.get_dm_messages,dm_messages ,sender, receiver)
-    await sio.emit('dm_history', {'history': history}, to=sid)
+
+    serializable_history = []
+    for msg in history:
+        serializable_msg = msg.copy()
+        if 'timestamp' in serializable_msg and isinstance(serializable_msg['timestamp'], datetime):
+            serializable_msg['timestamp'] = serializable_msg['timestamp'].isoformat()
+        serializable_history.append(serializable_msg)
+
+    await sio.emit('dm_history', {'history': serializable_history}, to=sid)
 
 @sio.event
 async def join_group(sid,data):
@@ -283,7 +291,15 @@ async def group_message(sid,data):
 async def group_history(sid, data):
     group_name = data.get('group_name')
     history = await asyncio.to_thread(db.get_group_messages, group_messages ,group_name)
-    await sio.emit('group_history', {'history': history}, to=sid)
+
+    serializable_history = []
+    for msg in history:
+        serializable_msg = msg.copy()
+        if 'timestamp' in serializable_msg and isinstance(serializable_msg['timestamp'], datetime):
+            serializable_msg['timestamp'] = serializable_msg['timestamp'].isoformat()
+        serializable_history.append(serializable_msg)
+
+    await sio.emit('group_history', {'history': serializable_history}, to=sid)
 
 
 @sio.event
