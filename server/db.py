@@ -12,7 +12,12 @@ def connect_db() :
     if not connection_string:
         raise RuntimeError("MONGODB_URI not set in environment or server/.env")
 
-    clientMongo = MongoClient(connection_string, serverSelectionTimeoutMS=5000)
+    # Fix SSL certificate verification issue on macOS
+    clientMongo = MongoClient(
+        connection_string, 
+        serverSelectionTimeoutMS=5000,
+        tlsAllowInvalidCertificates=True  # Disable SSL certificate verification
+    )
     try:
         # quick check that the server is reachable
         clientMongo.admin.command('ping')

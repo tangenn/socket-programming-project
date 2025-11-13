@@ -20,6 +20,14 @@ active_games = {}
 # collections
 users, dm_messages, group_messages, groups = db.connect_db()
 
+# Validate database connection
+if users is None:
+    print("ERROR: Failed to connect to database. 'users' collection is None!")
+    print("Please check your MongoDB connection and ensure the database is running.")
+    sys.exit(1)
+
+print(f"Database connected successfully. Collections: {users.name}, {dm_messages.name}, {group_messages.name}, {groups.name}")
+
 @sio.event
 async def connect(sid, environ) :
     print(f"{sid} connected")
@@ -385,11 +393,13 @@ async def selectedRPS(sid,data):
             'player_two_selected': p2_selected
         }, to=game_room_id)
 
+        del active_games[game_room_id]
+
         #if want to store log 
         # timestamp = datetime.now(timezone.utc)
         # await asyncio.to_thread(db.save_game_result,  ,result, p1_id, p2_id, timestamp)
 
 
-#if want to get score board 
-@sio.event
-async def getScoreBoard(sid,data):
+# #if want to get score board 
+# @sio.event
+# async def getScoreBoard(sid,data):
