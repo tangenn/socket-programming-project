@@ -43,6 +43,10 @@ async def disconnect(sid) :
 
         print(f'Client disconnected: {username} ({sid})')
 
+    if sid in active_games:
+        del active_games[sid]
+        print(f"Cleaned up stale challenge for disconnected user {sid}")
+
 
 @sio.event
 async def register(sid,data):
@@ -159,7 +163,15 @@ async def dm_history(sid, data) :
     sender = sid_to_user.get(sid)
     receiver = data.get('receiver')
     history = await asyncio.to_thread(db.get_dm_messages,dm_messages ,sender, receiver)
-    await sio.emit('dm_history', {'history': history}, to=sid)
+
+    serializable_history = []
+    for msg in history:
+        serializable_msg = msg.copy()
+        if 'timestamp' in serializable_msg and isinstance(serializable_msg['timestamp'], datetime):
+            serializable_msg['timestamp'] = serializable_msg['timestamp'].isoformat()
+        serializable_history.append(serializable_msg)
+
+    await sio.emit('dm_history', {'history': serializable_history}, to=sid)
 
 @sio.event
 async def join_group(sid,data):
@@ -273,9 +285,16 @@ async def group_message(sid,data):
 async def group_history(sid, data):
     group_name = data.get('group_name')
     history = await asyncio.to_thread(db.get_group_messages, group_messages ,group_name)
-    await sio.emit('group_history', {'history': history}, to=sid)
 
+    serializable_history = []
+    for msg in history:
+        serializable_msg = msg.copy()
+        if 'timestamp' in serializable_msg and isinstance(serializable_msg['timestamp'], datetime):
+            serializable_msg['timestamp'] = serializable_msg['timestamp'].isoformat()
+        serializable_history.append(serializable_msg)
 
+    await sio.emit('group_history', {'history': serializable_history}, to=sid)\
+    
 @sio.event
 async def online_users(sid):
     online_users_list = list(user_to_sid.keys())
@@ -294,6 +313,122 @@ async def getMe(sid) :
 
 # ---- mini game rock paper scissor ------
 # JUST 1 VS 1 version multiplayer not yet implement
+
+def calculate_rps_winner(p1_id, p1_move, p2_id, p2_move):
+    if p1_move == p2_move:
+        return {'draw': True, 'winner': None, 'loser': None}
+
+    winning_moves = {
+        'rock': 'scissors',
+        'scissors': 'paper',
+        'paper': 'rock'
+    }
+
+    if winning_moves[p1_move] == p2_move:
+        # Player 1 wins
+        return {'draw': False, 'winner': p1_id, 'loser': p2_id}
+    else:
+        # Player 2 wins
+        return {'draw': False, 'winner': p2_id, 'loser': p1_id}
+    
+# ตั้งเวลาหมดอายุกัย สร้างเยอะเกิน
+async def expire_challenge(challenger_sid, group_name, message_id):
+    await asyncio.sleep(120) #วินาที
+
+    if challenger_sid in active_games:
+        print(f"Challenge {message_id} from {challenger_sid} has expired.")
+        
+        del active_games[challenger_sid]
+        
+        await sio.emit('challenge_expired', {'id': message_id}, to=group_name)
+
+@sio.event 
+async def group_challengeV2(sid,data):
+    challenger_name = sid_to_user.get(sid)
+    group_name = data.get('group_name')
+    id = data.get('id')
+    avatarId = data.get('avatarId')
+    selectedRPS = data.get('selectedRPS')
+    timestamp = datetime.now(timezone.utc).isoformat()
+    type = "challenge"
+    text = f"{challenger_name} has challenged you to a game of Rock-Paper-Scissors!"
+
+    active_games[sid] = {
+        'selected': selectedRPS,
+        'haveOpponent':False
+    }
+
+    message_payload = {
+        "id": id,
+        "sender": challenger_name,
+        "challenger_sid": sid,
+        "avatarId": avatarId,
+        "timestamp": timestamp,
+        "type": type,
+        "text": text
+    }
+
+    await asyncio.to_thread(db.save_group_message, group_messages, group_name, id ,challenger_name, avatarId, timestamp, type, text)
+
+    await sio.emit('challenge_message',{'message': message_payload}, to=group_name)
+
+    sio.start_background_task(expire_challenge, sid, group_name, id)
+
+@sio.event
+async def group_challenge_responseV2(sid,data):
+    challenger_id = data.get('challenger_id')
+    id = data.get('id')
+    avatarId = data.get('avatarId')
+    selectedRPS = data.get('selectedRPS')
+    opponent_name = sid_to_user.get(sid)
+    challenger_name = sid_to_user.get(challenger_id)
+    group_name = data.get('group_name')
+    timestamp = datetime.now(timezone.utc).isoformat()
+    type = "challenge"
+    game = active_games.get(challenger_id)
+
+    if not game:
+        print(f"Game {challenger_id} not found (expired or challenger left).")
+        return
+
+    # --- THIS IS THE FIX ---
+    if game['haveOpponent']:
+        print(f"This Challenger has already been accepted by someone else.")
+        return
+    
+    # LOCK THE GAME IMMEDIATELY
+    game['haveOpponent'] = True
+    
+    if not challenger_id:
+        print(f"Challenger {challenger_name} is no longer online.")
+        return
+    
+    challenger_selected = game['selected']
+    
+    result = calculate_rps_winner(challenger_id, challenger_selected, sid, selectedRPS)
+    if result['draw'] :
+        text = f"DRAW"
+    # logic to send result
+    else:
+        print(f"{result['winner']} is the winner")
+
+    message_payload = {
+        "id": id,
+        "sender": opponent_name,
+        "avatarId": avatarId,
+        "timestamp": timestamp,
+        "type": type,
+        "text": text
+    }
+
+    await asyncio.to_thread(db.save_group_message, group_messages, group_name, id ,opponent_name, avatarId, timestamp, type, text)
+
+    await sio.emit('challenge_message',{'message': message_payload}, to=group_name)
+
+    if challenger_id in active_games:
+        del active_games[challenger_id]
+
+
 @sio.event 
 async def group_challenge(sid,data):
     username = sid_to_user.get(sid)
@@ -356,26 +491,6 @@ async def group_challenge_response(sid,data):
         sio.emit('game_started', {'game_room': game_room_id, 'players': [challenger_id, game_room_id]}, room=game_room_id)
 
 # selected rock paper scissor
-# ฝากตั้งชื่อหน่อย
-
-
-def calculate_rps_winner(p1_id, p1_move, p2_id, p2_move):
-    if p1_move == p2_move:
-        return {'draw': True, 'winner': None, 'loser': None}
-
-    winning_moves = {
-        'rock': 'scissors',
-        'scissors': 'paper',
-        'paper': 'rock'
-    }
-
-    if winning_moves[p1_move] == p2_move:
-        # Player 1 wins
-        return {'draw': False, 'winner': p1_id, 'loser': p2_id}
-    else:
-        # Player 2 wins
-        return {'draw': False, 'winner': p2_id, 'loser': p1_id}
-    
 
 @sio.event
 async def selectedRPS(sid,data):
