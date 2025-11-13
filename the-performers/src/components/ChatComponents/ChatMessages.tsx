@@ -1,71 +1,203 @@
-// MessageType Types
+"use client";
+import { useState, useEffect, useRef } from "react";
+import { getAvatar } from "@/utils/avatarMap";
+
 export type MessageType = {
   id: string;
   sender: string;
-    avatar?: string;
+  avatarId?: number;
   timestamp: string;
   isSelf: boolean;
-  type: "text" | "rps" | "challenge" | "challenge_result";
+  type: "text" | "challenge" | "challenge_accepted" | "challenge_result";
   text?: string;
-  rps?: "rock" | "paper" | "scissor";
-  challengeStatus?: "waiting" | "accepted";
-  result?: "win" | "lose" | "draw";
+  opponent?: string;
+  participants?: string[];
 };
 
-// Scrollable chat list
-export function ChatMessages({ messages, isGroup, shrink }: { messages: MessageType[]; isGroup: boolean; shrink?: boolean }) {
+export function ChatMessages({
+  messages,
+  isGroup,
+  shrink,
+}: {
+  messages: MessageType[];
+  isGroup: boolean;
+  shrink?: boolean;
+}) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [messages]);
+
+  const [waitingChoice, setWaitingChoice] = useState<string | null>(null);
+  const handleChoice = (choice: string) => setWaitingChoice(choice);
+
   return (
-    <div className={`flex flex-col gap-6 p-6 bg-gray-200/60 rounded-3xl overflow-y-auto transition-all duration-300 ${shrink ? "h-[50vh]" : "h-[60vh]"}`}>
+    <div
+      ref={scrollRef}
+      className={`
+        flex flex-col gap-8 p-6 
+        rounded-3xl overflow-y-auto 
+        comic-panel bg-white/70 backdrop-blur 
+        transition-all duration-300 
+        ${shrink ? "h-[50vh]" : "h-[60vh]"}
+      `}
+    >
       {messages.map((m) => {
-        if (isGroup) {
+        /* ================================
+           🔥  CHALLENGE BANNER
+        ================================= */
+        if (m.type === "challenge") {
+          const challengeText = isGroup
+            ? m.isSelf
+              ? "You challenge others!"
+              : `${m.sender} challenges you!`
+            : m.isSelf
+            ? `You challenge ${m.opponent}!`
+            : `${m.sender} challenges you!`;
+
           return (
-            <div key={m.id} className={`flex ${m.isSelf ? "justify-end" : "justify-start"}`}>
-              {!m.isSelf && (
-                <img className="w-10 h-10 rounded-full object-cover mr-3 mt-1" src={m.avatar ?? "/fallback.png"} alt="pfp" />
-              )}
-              <div className={`flex ${m.isSelf ? "flex-row-reverse" : "flex-row"} items-start gap-3 max-w-[75%]`}>
-                <div className="flex flex-col">
-                  <span className="font-semibold mb-1">{m.sender}</span>
-                  <div className="bg-white px-4 py-2 rounded-xl shadow">
-                    {m.type === "text" && m.text}
-                    {m.type === "rps" && <span className="font-semibold capitalize">{m.rps}</span>}
-                    {m.type === "challenge" && (
-                      <span>{m.isSelf ? "Challenge created. Waiting for an opponent." : `${m.sender} challenges you.`}</span>
-                    )}
-                    {m.type === "challenge_result" && (
-                      <span className="font-semibold">
-                        {m.challengeStatus === "accepted" ? `${m.sender} accepts your challenge.` : ""}
-                      </span>
+            <div key={m.id} className="flex justify-center w-full">
+              <div className="comic-card max-w-2xl w-full text-center p-6">
+
+                <div className="comic-banner-title mb-3">
+                  ⚡ Challenge Incoming!
+                </div>
+
+                <p className="font-semibold text-lg mb-4">{challengeText}</p>
+
+                {!m.isSelf && (
+                  <div className="flex justify-center gap-4">
+                    {waitingChoice ? (
+                      <p className="italic text-gray-600">Waiting for your move…</p>
+                    ) : (
+                      ["Rock", "Paper", "Scissor"].map((choice) => (
+                        <button
+                          key={choice}
+                          onClick={() => handleChoice(choice)}
+                          className="comic-choice-btn"
+                        >
+                          {choice}
+                        </button>
+                      ))
                     )}
                   </div>
-                </div>
-                <span className="text-sm leading-6 mt-7">{m.timestamp}</span>
+                )}
               </div>
-              {m.isSelf && (
-                <img className="w-10 h-10 rounded-full object-cover ml-3 mt-1" src={m.avatar ?? "/fallback.png"} alt="pfp" />
-              )}
             </div>
           );
         }
-        return (
-          <div key={m.id} className={`flex ${m.isSelf ? "justify-end" : "justify-start"}`}>
-            <div className={`flex ${m.isSelf ? "flex-row-reverse" : "flex-row"} items-center gap-3 max-w-[75%]`}>
-              <div className="bg-white px-4 py-2 rounded-xl shadow">
-                {m.type === "text" && m.text}
-                {m.type === "rps" && <span className="font-semibold capitalize">{m.rps}</span>}
-                {m.type === "challenge" && (
-                  <span>{m.isSelf ? "Challenge created. Waiting for an opponent." : `${m.sender} challenges you.`}</span>
-                )}
-                {m.type === "challenge_result" && (
-                  <span className="font-semibold">
-                    {m.challengeStatus === "accepted" ? `${m.sender} accepts your challenge.` : ""}
+
+        /* ================================
+           🔵  CHALLENGE ACCEPTED BANNER
+        ================================= */
+        if (m.type === "challenge_accepted") {
+          let text =
+            isGroup && m.participants?.length === 2
+              ? `${m.participants[0]} accepted ${m.participants[1]}'s challenge!`
+              : m.isSelf
+              ? `You accepted ${m.opponent}'s challenge!`
+              : `${m.sender} accepted your challenge!`;
+
+          return (
+            <div key={m.id} className="flex justify-center w-full">
+              <div className="comic-card bg-blue-100 max-w-2xl w-full text-center p-6">
+                <div className="comic-banner-title text-blue-900 mb-3">
+                  💥 Challenge Accepted!
+                </div>
+                <p className="font-bold text-blue-900 text-lg">{text}</p>
+              </div>
+            </div>
+          );
+        }
+
+        /* ================================
+           🔥  CHALLENGE RESULT BANNER
+        ================================= */
+        if (m.type === "challenge_result") {
+          const parts = m.participants ?? [];
+          const isDraw = parts.length === 0;
+
+          let text = isDraw
+            ? "It's a draw!"
+            : parts[0] === "You"
+            ? `You won! ${parts[1]} lost.`
+            : parts[1] === "You"
+            ? `You lost. ${parts[0]} won.`
+            : `${parts[0]} defeated ${parts[1]}!`;
+
+          const color = isDraw
+            ? "bg-yellow-200"
+            : parts[0] === "You"
+            ? "bg-green-200"
+            : parts[1] === "You"
+            ? "bg-red-200"
+            : "bg-white";
+
+          return (
+            <div key={m.id} className="flex justify-center w-full">
+              <div className={`comic-card ${color} max-w-2xl w-full text-center p-6`}>
+                <div className="comic-banner-title mb-3">
+                  {isDraw ? "😮 It's a Draw!" : "🔥 Battle Result!"}
+                </div>
+                <p className="font-bold text-lg">{text}</p>
+              </div>
+            </div>
+          );
+        }
+
+        /* ================================
+           TEXT MESSAGES — INCOMING
+        ================================= */
+        if (m.type === "text" && !m.isSelf) {
+          return (
+            <div key={m.id} className="flex items-start gap-3">
+              <img
+                src={getAvatar(m.avatarId ?? 1)}
+                alt={m.sender}
+                className="w-10 h-10 rounded-full comic-img"
+              />
+
+              <div className="flex flex-col max-w-[70%]">
+                {isGroup && (
+                  <span className="font-bold text-sm mb-1 comic-text-strong">
+                    {m.sender}
                   </span>
                 )}
+
+                <div className="flex gap-2 items-end">
+                  <div className="comic-bubble bg-white text-gray-900 px-4 py-2">
+                    {m.text}
+                  </div>
+
+                  <span className="text-xs text-gray-600">{m.timestamp}</span>
+                </div>
               </div>
-              <span className="text-sm">{m.timestamp}</span>
             </div>
-          </div>
-        );
+          );
+        }
+
+        /* ================================
+           TEXT MESSAGES — OUTGOING
+        ================================= */
+        if (m.type === "text" && m.isSelf) {
+          return (
+            <div key={m.id} className="flex justify-end items-start">
+              <div className="flex flex-col max-w-[70%] items-end">
+                <div className="flex gap-2 items-end">
+                  <span className="text-xs text-gray-600">{m.timestamp}</span>
+
+                  <div className="comic-bubble bg-red-100 text-gray-900 px-4 py-2">
+                    {m.text}
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        }
+
+        return null;
       })}
     </div>
   );
