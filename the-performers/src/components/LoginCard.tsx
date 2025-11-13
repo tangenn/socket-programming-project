@@ -22,10 +22,26 @@ export default function LoginCard() {
     // If socket.ts has autoConnect: true, you can remove this.
     socket.connect();
 
+    console.log('Socket connection status:', socket.connected);
+
+    // Listen for connection events
+    const onConnect = () => {
+      console.log('Socket connected!', socket.id);
+    };
+
+    const onDisconnect = () => {
+      console.log('Socket disconnected!');
+    };
+
+    const onConnectError = (error: any) => {
+      console.error('Socket connection error:', error);
+      setErrorMessage('Unable to connect to server. Please try again.');
+    };
+
     // Listen for the 'login_success' event
     const onLoginSuccess = (data: { username: string }) => {
       console.log('Login successful:', data.username);
-      // Store username in both localStorage and cookie
+      // Store username in cookie
       setAuth(data.username);
       // On success, clear errors and redirect
       setErrorMessage('');
@@ -40,6 +56,9 @@ export default function LoginCard() {
     };
 
     // Add the listeners
+    socket.on('connect', onConnect);
+    socket.on('disconnect', onDisconnect);
+    socket.on('connect_error', onConnectError);
     socket.on('login_success', onLoginSuccess);
     socket.on('login_error', onLoginError);
 
@@ -47,6 +66,9 @@ export default function LoginCard() {
     // This runs when the component unmounts
     return () => {
       // Remove listeners to prevent memory leaks
+      socket.off('connect', onConnect);
+      socket.off('disconnect', onDisconnect);
+      socket.off('connect_error', onConnectError);
       socket.off('login_success', onLoginSuccess);
       socket.off('login_error', onLoginError);
     };
@@ -67,12 +89,16 @@ export default function LoginCard() {
       return;
     }
 
+    console.log('Attempting login...', { username, socket_connected: socket.connected });
+
     // Emit the 'login' event to the server
     // This matches your backend: @sio.event async def login(sid,data):
     socket.emit('login', {
       username: username,
       password: password,
     });
+    
+    console.log('Login event emitted');
   };
   
   return (

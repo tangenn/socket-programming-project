@@ -73,10 +73,14 @@ export default function HomePage() {
   useEffect(() => {
     setIsMounted(true);
 
-    // Check for existing username from localStorage or cookie
-    const storedUsername = getUsername();
-    if (storedUsername) {
-      setUsername(storedUsername);
+    // Request current user from server
+    socket.emit('getMe');
+
+    // Listen for 'me' event from server
+    function onMe(data: { username: string | null }) {
+      if (data.username) {
+        setUsername(data.username);
+      }
     }
 
     // Listen for login success
@@ -85,10 +89,12 @@ export default function HomePage() {
       setAuth(data.username);
     }
 
-    socket.on('login_success', onLoginSuccess);
+    socket.on('me', onMe);
+    socket.on("login_success", onLoginSuccess);
 
     return () => {
-      socket.off('login_success', onLoginSuccess);
+      socket.off('me', onMe);
+      socket.off("login_success", onLoginSuccess);
     };
   }, []);
 
@@ -102,9 +108,11 @@ export default function HomePage() {
     return (
       <div className="min-h-screen bg-gray-300 flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-4xl font-bold mb-4 text-gray-800">Welcome to PRF</h1>
+          <h1 className="text-4xl font-bold mb-4 text-gray-800">
+            Welcome to PRF
+          </h1>
           <p className="text-xl text-gray-600 mb-6">Please login to continue</p>
-          <Link 
+          <Link
             href="/login"
             className="bg-blue-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-600 transition"
           >
@@ -117,15 +125,10 @@ export default function HomePage() {
 
   const mockUser = { name: username };
 
-    <div className="min-h-screen bg-gray-300 flex justify-center gap-10 pt-20 px-6">
-      <UsersPanel currentUser={mockUser} />
-      <GroupChatsPanel />
+  return (
     <div className="relative min-h-screen">
-      
       {/* Background */}
-      <div
-        className="absolute inset-0 bg-[url('/backgrounds/background_Dramatic.jpg')] bg-cover bg-center bg-fixed"
-      />
+      <div className="absolute inset-0 bg-[url('/backgrounds/background_Dramatic.jpg')] bg-cover bg-center bg-fixed" />
 
       {/* Optional dark overlay */}
       <div className="absolute inset-0 bg-black/40" />

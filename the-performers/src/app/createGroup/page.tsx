@@ -8,6 +8,7 @@ export default function CreateGroupPage() {
   const [groupName, setGroupName] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const router = useRouter();
 
   // Function to sanitize group name for URL safety
@@ -18,15 +19,20 @@ export default function CreateGroupPage() {
   };
 
   useEffect(() => {
-    // Check if user is logged in
-    const username = localStorage.getItem('username');
-    if (!username) {
-      router.push('/login');
-      return;
-    }
-
     // Make sure socket is connected
     socket.connect();
+
+    // Request current user from server
+    socket.emit('getMe');
+
+    // Listen for 'me' event to check authentication
+    const onMe = (data: { username: string | null }) => {
+      if (!data.username) {
+        router.push('/login');
+        return;
+      }
+      setIsCheckingAuth(false);
+    };
 
     // Listen for create_group_success event
     const onCreateGroupSuccess = (data: { message: string; group_name: string }) => {
@@ -48,15 +54,26 @@ export default function CreateGroupPage() {
     };
 
     // Add the listeners
+    socket.on('me', onMe);
     socket.on('create_group_success', onCreateGroupSuccess);
     socket.on('create_group_error', onCreateGroupError);
 
     // Cleanup function
     return () => {
+      socket.off('me', onMe);
       socket.off('create_group_success', onCreateGroupSuccess);
       socket.off('create_group_error', onCreateGroupError);
     };
   }, [router]);
+
+  // Show loading while checking authentication
+  if (isCheckingAuth) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p>Loading...</p>
+      </div>
+    );
+  }
 
   const handleCreateGroup = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();

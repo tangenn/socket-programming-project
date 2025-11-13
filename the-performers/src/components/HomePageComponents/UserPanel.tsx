@@ -25,7 +25,9 @@ export function UsersPanel({ currentUser }: UsersPanelProps) {
     // Listen for online users updates
     function handleOnlineUsers(data: { users: string[] }) {
       // Filter out the current user from the list
-      const filteredUsers = data.users.filter(user => user !== currentUser.name);
+      const filteredUsers = data.users.filter(
+        (user) => user !== currentUser.name
+      );
       setOnlineUsers(filteredUsers);
     }
 
@@ -65,9 +67,7 @@ export function UsersPanel({ currentUser }: UsersPanelProps) {
           alt="pfp"
           className="w-12 h-12 rounded-full object-cover"
         />
-        <span className="font-semibold flex-1 text-lg">
-          {currentUser.name}
-        </span>
+        <span className="font-semibold flex-1 text-lg">{currentUser.name}</span>
       </div>
 
       {/* Change Avatar */}
@@ -90,16 +90,16 @@ export function UsersPanel({ currentUser }: UsersPanelProps) {
       {onlineUsers.length === 0 ? (
         <div className="text-gray-500 text-center py-4">
           No other users online
-      {/* Connected Users header */}
-<!--       <h2
+          {/* Connected Users header */}
+          {/* <!--       <h2
         className="mt-6 mb-3 text-xl font-bold tracking-wide"
         style={{ fontFamily: "'Bangers', sans-serif" }}
       >
         CONNECTED USERS
       </h2>
- -->
-      {/* User List */}
-<!--       {connectedUsers.map((u) => (
+ --> */}
+          {/* User List */}
+          {/* <!--       {connectedUsers.map((u) => (
         <div
           key={u.name}
           className="
@@ -113,8 +113,7 @@ export function UsersPanel({ currentUser }: UsersPanelProps) {
             alt={u.name}
             className="w-10 h-10 rounded-full object-cover"
           />
-          <span className="font-semibold flex-1">{u.name}</span> -->
-
+          <span className="font-semibold flex-1">{u.name}</span> --> */}
         </div>
       ) : (
         onlineUsers.map((username) => (
@@ -134,7 +133,9 @@ export function UsersPanel({ currentUser }: UsersPanelProps) {
             <span className="font-semibold flex-1">{username}</span>
 
             <button
-              onClick={() => router.push(`/private/${encodeURIComponent(username)}`)}
+              onClick={() =>
+                router.push(`/private/${encodeURIComponent(username)}`)
+              }
               className="px-3 py-1 bg-gray-200 rounded-md font-medium hover:bg-gray-300 transition"
             >
               Chat

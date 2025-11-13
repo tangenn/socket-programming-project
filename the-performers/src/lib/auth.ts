@@ -6,39 +6,32 @@ export function setCookie(name: string, value: string, days: number = 7) {
   document.cookie = `${name}=${value};expires=${expires.toUTCString()};path=/`;
 }
 
-export function getCookie(name: string): string | null {
-  const nameEQ = name + "=";
-  const ca = document.cookie.split(';');
-  for (let i = 0; i < ca.length; i++) {
-    let c = ca[i];
-    while (c.charAt(0) === ' ') c = c.substring(1, c.length);
-    if (c.indexOf(nameEQ) === 0) return c.substring(nameEQ.length, c.length);
-  }
-  return null;
-}
-
 export function deleteCookie(name: string) {
   document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/`;
 }
 
 // Helper to set authentication
 export function setAuth(username: string) {
-  localStorage.setItem('username', username);
   setCookie('username', username, 7); // Cookie expires in 7 days
 }
 
 // Helper to clear authentication
 export function clearAuth() {
-  localStorage.removeItem('username');
   deleteCookie('username');
 }
 
-// Helper to check if user is authenticated
+// Note: Use socket.emit('getMe') and listen to 'me' event instead of these functions
+// These are kept for backward compatibility but will be replaced by socket-based auth
+
+// Helper to check if user is authenticated - DEPRECATED
+// Use socket.emit('getMe') instead
 export function isAuthenticated(): boolean {
-  return !!localStorage.getItem('username') || !!getCookie('username');
+  return false; // Placeholder - use getMe socket event
 }
 
-// Helper to get current username
+// Helper to get current username - DEPRECATED
+// Use socket.emit('getMe') and listen for 'me' event instead
 export function getUsername(): string | null {
-  return localStorage.getItem('username') || getCookie('username');
+  return null; // Placeholder - use getMe socket event
 }
+

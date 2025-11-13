@@ -1,31 +1,12 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-// Define public routes that don't require authentication
-const publicRoutes = ['/', '/login', '/register'];
+// Middleware disabled - authentication is handled client-side via socket.emit('getMe')
+// The server validates sessions via sid_to_user mapping
+// Cookies are still set for potential future use, but not checked here
 
 export function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
-  
-  // Check if the current route is public
-  const isPublicRoute = publicRoutes.includes(pathname);
-  
-  // Get username from cookie (we'll need to set this on login)
-  const username = request.cookies.get('username')?.value;
-  
-  // If trying to access a protected route without being logged in
-  if (!isPublicRoute && !username) {
-    // Redirect to login page
-    const loginUrl = new URL('/login', request.url);
-    return NextResponse.redirect(loginUrl);
-  }
-  
-  // If logged in and trying to access login/register, redirect to home
-  if (username && (pathname === '/login' || pathname === '/register')) {
-    const homeUrl = new URL('/', request.url);
-    return NextResponse.redirect(homeUrl);
-  }
-  
+  // Allow all requests through - client-side handles auth via getMe
   return NextResponse.next();
 }
 
