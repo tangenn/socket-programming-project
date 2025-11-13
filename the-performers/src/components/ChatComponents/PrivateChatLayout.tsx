@@ -8,9 +8,10 @@ import { getAvatar } from "@/utils/avatarMap";
 type PrivateChatProps = {
   user: { name: string; avatarId?: number };
   messages: MessageType[];
+  onSendMessage?: (content: string) => void;
 };
 
-export function PrivateChatLayout({ user, messages }: PrivateChatProps) {
+export function PrivateChatLayout({ user, messages, onSendMessage }: PrivateChatProps) {
   const [showRPS, setShowRPS] = React.useState(false);
 
   return (
@@ -28,7 +29,10 @@ export function PrivateChatLayout({ user, messages }: PrivateChatProps) {
         <ChatMessages messages={messages} isGroup={false} shrink={showRPS} />
         <div className="mt-4">
           <RPSSelector open={showRPS} />
-          <ChatInput onToggleRPS={() => setShowRPS(v => !v)} />
+          <ChatInput 
+            onToggleRPS={() => setShowRPS(v => !v)} 
+            onSendMessage={onSendMessage}
+          />
         </div>
       </div>
     </div>
