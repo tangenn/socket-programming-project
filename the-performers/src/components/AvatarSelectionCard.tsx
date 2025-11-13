@@ -17,8 +17,8 @@ export function AvatarSelectionCard() {
     >
       <h1
         className="
-          text-4xl text-center mb-10 font-bold comic-title
-          tracking-wide
+          text-5xl text-center mb-10 font-bold comic-title py-2
+          tracking-wide text-red-600 comic-avatar-selection-title
         "
       >
         SELECT YOUR AVATAR

@@ -27,7 +27,8 @@ export function GroupChatLayout({
       <div
         className="
           relative w-full max-w-6xl 
-          bg-white/95 
+          bg-white/75
+          backdrop-blur
           rounded-[32px]
           border-4 border-black
           shadow-[12px_12px_0px_#000]
@@ -48,14 +49,15 @@ export function GroupChatLayout({
           <button
             className="
               px-5 py-2
-              bg-red-500 text-white
+              bg-red-500 text-black font-bold
               rounded-xl
               border-4 border-black
               shadow-[4px_4px_0px_#000]
               active:translate-x-[2px] active:translate-y-[2px]
-              hover:bg-red-600 transition
+              hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[5px_5px_0px_#000]
+              active:translate-x-[2px] active:translate-y-[2px] active:shadow-[2px_2px_0px_#000]
+              transition-all
             "
-            onClick={() => alert("Delete group clicked")}
           >
             Delete Group
           </button>

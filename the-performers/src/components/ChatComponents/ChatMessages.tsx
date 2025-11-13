@@ -1,3 +1,5 @@
+// Updated ChatMessages component with improved banner styling
+
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { getAvatar } from "@/utils/avatarMap";
@@ -37,16 +39,15 @@ export function ChatMessages({
     <div
       ref={scrollRef}
       className={`
-        flex flex-col gap-8 p-6 
-        rounded-3xl overflow-y-auto 
-        comic-panel bg-white/70 backdrop-blur 
-        transition-all duration-300 
+        flex flex-col gap-8 p-6 rounded-3xl overflow-y-auto
+        comic-panel bg-white/70 backdrop-blur
+        transition-all duration-300
         ${shrink ? "h-[50vh]" : "h-[60vh]"}
       `}
     >
       {messages.map((m) => {
         /* ================================
-           🔥  CHALLENGE BANNER
+           ⚡ CHALLENGE BANNER
         ================================= */
         if (m.type === "challenge") {
           const challengeText = isGroup
@@ -59,24 +60,29 @@ export function ChatMessages({
 
           return (
             <div key={m.id} className="flex justify-center w-full">
-              <div className="comic-card max-w-2xl w-full text-center p-6">
-
-                <div className="comic-banner-title mb-3">
-                  ⚡ Challenge Incoming!
+              <div
+                className="comic-card max-w-2xl w-full text-center p-6 bg-white-100/70"
+              >
+                <div className="comic-banner-title text-yellow-700 mb-3">
+                  ⚡ A Challenge Has Been Created!
                 </div>
 
-                <p className="font-semibold text-lg mb-4">{challengeText}</p>
+                <p className="font-semibold text-lg mb-4 text-gray-900">
+                  {challengeText}
+                </p>
 
                 {!m.isSelf && (
                   <div className="flex justify-center gap-4">
                     {waitingChoice ? (
-                      <p className="italic text-gray-600">Waiting for your move…</p>
+                      <p className="italic text-gray-600">
+                        Waiting for your move…
+                      </p>
                     ) : (
-                      ["Rock", "Paper", "Scissor"].map((choice) => (
+                      ["✊🏿 ROCK", "🖐🏿 PAPER", "✌🏿 SCISSOR"].map((choice) => (
                         <button
                           key={choice}
                           onClick={() => handleChoice(choice)}
-                          className="comic-choice-btn"
+                          className="comic-choice-btn text-10xl comic-text-strong"
                         >
                           {choice}
                         </button>
@@ -90,7 +96,7 @@ export function ChatMessages({
         }
 
         /* ================================
-           🔵  CHALLENGE ACCEPTED BANNER
+           💥 CHALLENGE ACCEPTED BANNER
         ================================= */
         if (m.type === "challenge_accepted") {
           let text =
@@ -102,18 +108,20 @@ export function ChatMessages({
 
           return (
             <div key={m.id} className="flex justify-center w-full">
-              <div className="comic-card bg-blue-100 max-w-2xl w-full text-center p-6">
+              <div
+                className="comic-card bg-blue-100/80 max-w-2xl w-full text-center p-6"
+              >
                 <div className="comic-banner-title text-blue-900 mb-3">
                   💥 Challenge Accepted!
                 </div>
-                <p className="font-bold text-blue-900 text-lg">{text}</p>
+                <p className="font-bold text-black-900 text-lg">{text}</p>
               </div>
             </div>
           );
         }
 
         /* ================================
-           🔥  CHALLENGE RESULT BANNER
+           🔥 CHALLENGE RESULT
         ================================= */
         if (m.type === "challenge_result") {
           const parts = m.participants ?? [];
@@ -128,11 +136,11 @@ export function ChatMessages({
             : `${parts[0]} defeated ${parts[1]}!`;
 
           const color = isDraw
-            ? "bg-yellow-200"
+            ? "bg-yellow-100/80"
             : parts[0] === "You"
-            ? "bg-green-200"
+            ? "bg-green-200/80"
             : parts[1] === "You"
-            ? "bg-red-200"
+            ? "bg-red-200/80"
             : "bg-white";
 
           return (
@@ -148,7 +156,7 @@ export function ChatMessages({
         }
 
         /* ================================
-           TEXT MESSAGES — INCOMING
+           INCOMING MESSAGE
         ================================= */
         if (m.type === "text" && !m.isSelf) {
           return (
@@ -170,7 +178,6 @@ export function ChatMessages({
                   <div className="comic-bubble bg-white text-gray-900 px-4 py-2">
                     {m.text}
                   </div>
-
                   <span className="text-xs text-gray-600">{m.timestamp}</span>
                 </div>
               </div>
@@ -179,7 +186,7 @@ export function ChatMessages({
         }
 
         /* ================================
-           TEXT MESSAGES — OUTGOING
+           OUTGOING MESSAGE
         ================================= */
         if (m.type === "text" && m.isSelf) {
           return (
@@ -187,7 +194,6 @@ export function ChatMessages({
               <div className="flex flex-col max-w-[70%] items-end">
                 <div className="flex gap-2 items-end">
                   <span className="text-xs text-gray-600">{m.timestamp}</span>
-
                   <div className="comic-bubble bg-red-100 text-gray-900 px-4 py-2">
                     {m.text}
                   </div>

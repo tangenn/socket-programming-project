@@ -6,8 +6,6 @@
 :root {
   --font-sans: var(--geist-sans);
   --font-mono: var(--geist-mono);
-
-  /* Comic theme */
   --font-comic: "Bangers", cursive;
 
   --bg-main: #fafafa;
@@ -15,7 +13,7 @@
 }
 
 /* ---------------------- */
-/*  APPLY BASE OVERRIDES  */
+/*  BASE OVERRIDES        */
 /* ---------------------- */
 @layer base {
   html {
@@ -28,46 +26,35 @@
     font-family: var(--font-sans);
   }
 
-  /* Optional: comic headings */
   h1, h2, h3, .comic-title {
     font-family: var(--font-comic);
   }
 }
-/* COMIC UI ELEMENTS */
+
+/* ---------------------- */
+/*  COMIC UI ELEMENTS     */
+/* ---------------------- */
+
 .comic-card {
-  background: #ffffffee;
-  border: 4px solid black;
+  border: 4px solid #000;
   border-radius: 24px;
-  box-shadow: 6px 6px 0px #000;
-}
-
-.comic-bubble {
-  border: 3px solid black;
-  border-radius: 18px;
-  box-shadow: 4px 4px 0px #000;
-  word-break: break-word;
-}
-
-.comic-btn {
-  border: 3px solid black;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 4px 4px 0px #000;
-  font-weight: bold;
-  transition: transform 0.1s ease;
-}
-
-.comic-btn:hover {
-  transform: scale(1.07);
-}
-
-.comic-img {
-  border: 3px solid black;
+  box-shadow: 6px 6px 0 #000;
 }
 
 .comic-panel {
-  border: 4px solid black;
-  box-shadow: 8px 8px 0px #000;
+  border: 4px solid #000;
+  box-shadow: 8px 8px 0 #000;
+}
+
+.comic-bubble {
+  border: 3px solid #000;
+  border-radius: 18px;
+  box-shadow: 4px 4px 0 #000;
+  word-break: break-word;
+}
+
+.comic-img {
+  border: 3px solid #000;
 }
 
 .comic-text-strong {
@@ -75,74 +62,61 @@
   letter-spacing: 1px;
 }
 
-/* ===================================== */
-/*     🔥  COMIC EVENT / CHALLENGE BANNER */
-/* ===================================== */
+/* ---------------------- */
+/*     COMIC BANNER       */
+/* ---------------------- */
 
 .comic-banner {
-  background: #ffffffee;
   border: 4px solid #000;
-  border-radius: 22px;
-  padding: 20px 28px;
+  border-radius: 26px;
   box-shadow: 6px 6px 0 #000;
+  padding: 1.4rem;
   text-align: center;
-  max-width: 650px;
   width: 100%;
-  margin: 10px auto;
+  max-width: 650px;
+  margin: 0 auto;
 }
 
-/* HEADER (Challenge Incoming / Accepted / Result) */
-.comic-banner-header {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 6px;
+/* Banner title */
+.comic-banner-title {
+  font-family: "Bangers", cursive;
+  font-size: 1.9rem;
+  letter-spacing: 0px;
+  text-transform: uppercase;
 
-  font-family: "Bangers", sans-serif;
-  font-size: 1.4rem;
-  font-weight: 900;
-  letter-spacing: 1px;
   color: #111;
-
   text-shadow:
     2px 2px 0 #fff,
-    4px 4px 0 #000;
+    2px 2px 0 #000;
+
+  margin-bottom: 0.4rem;
 }
 
-/* Subtext (e.g. “Aea accepted Tan’s challenge!”) */
-.comic-banner-subtext {
-  margin-top: 8px;
+/* Banner text */
+.comic-banner-text {
+  font-size: 1.12rem;
   font-weight: 700;
-  font-size: 1.1rem;
-  color: #0d47a1;
+  color: #222;
+  letter-spacing: 0.5px;
 }
 
-/* Results */
-.comic-banner-result-win {
-  color: #2e7d32;
-  font-weight: 900;
-}
 
-.comic-banner-result-lose {
-  color: #c62828;
-  font-weight: 900;
-}
+/* ---------------------- */
+/*  COMIC CHOICE BUTTONS  */
+/* ---------------------- */
 
-.comic-banner-result-draw {
-  color: #ff8f00;
-  font-weight: 900;
-}
-
-/* Choice Buttons */
 .comic-choice-btn {
-  background: white;
-  padding: 10px 18px;
-  border-radius: 12px;
+  background: #fff;
   border: 4px solid #000;
+  border-radius: 12px;
   box-shadow: 4px 4px 0 #000;
+
+  padding: 10px 18px;
+
   font-size: 1.1rem;
   font-weight: 900;
   letter-spacing: 1px;
+
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
@@ -156,3 +130,14 @@
   box-shadow: 2px 2px 0 #000;
 }
 
+.comic-avatar-selection-title {
+  font-family: "Bangers", cursive;
+  letter-spacing: 0px;
+  text-transform: uppercase;
+
+  text-shadow:
+    2px 2px 0 #fff,
+    2px 2px 0 #000;
+
+  margin-bottom: 0.4rem;
+}

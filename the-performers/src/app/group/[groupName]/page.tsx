@@ -65,6 +65,14 @@ const groupMessages: MessageType[] = [
     participants: ["Tan", "You"],
   },
   {
+    id: "18",
+    sender: "System",
+    timestamp: "11:06",
+    isSelf: true,
+    type: "challenge_result",
+    participants: ["You", "Tan"],
+  },
+  {
     id: "9",
     sender: "Tan",
     avatarId: 1,
