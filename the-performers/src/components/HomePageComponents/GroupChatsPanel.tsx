@@ -1,13 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { socket } from "@/socket";
+import { getAvatar } from "@/utils/avatarMap";
 
-type Group = {
-  name: string;
-  members: string[];
-};
+type Member = { name: string; avatarId?: number };
+type Group = { name: string; members: Member[] };
 
 export function GroupChatsPanel() {
   const router = useRouter();
@@ -54,67 +54,114 @@ export function GroupChatsPanel() {
   const joinedGroups = availableGroups.filter(g => g.members.includes(currentUsername));
   const otherGroups = availableGroups.filter(g => !g.members.includes(currentUsername));
 
+  const toggleGroup = (g: string) =>
+    setOpenGroup((prev) => (prev === g ? null : g));
+
+  const renderGroup = (g: Group, action: string) => (
+    <div
+      key={g.name}
+      className="
+        bg-white p-4 rounded-xl mb-4
+        border-4 border-black
+        shadow-[4px_4px_0px_#000]
+      "
+    >
+      <div
+        className="flex items-center justify-between cursor-pointer"
+        onClick={() => toggleGroup(g.name)}
+      >
+        <span className="font-bold text-lg">{g.name}</span>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              router.push(`/group/${encodeURIComponent(g.name)}`);
+            }}
+            className="
+              px-3 py-1 bg-white rounded-lg 
+              border-2 border-black shadow-[2px_2px_0px_#000] 
+              font-bold hover:translate-y-0.5 transition
+            "
+          >
+            {action}
+          </button>
+
+          <span
+            className={`
+              transition-transform duration-300 font-bold
+              ${openGroup === g.name ? "rotate-180" : ""}
+            `}
+          >
+            ▼
+          </span>
+        </div>
+      </div>
+
+      {openGroup === g.name && (
+        <div className="mt-3 border-t-2 border-black pt-3">
+          <p className="font-bold mb-2 text-sm">Members:</p>
+
+          <div className="flex flex-col gap-2 max-h-40 overflow-y-auto">
+            {g.members.length ? (
+              g.members.map((m, idx) => (
+                <div
+                  key={idx}
+                  className="
+                    flex items-center gap-3 p-2 rounded-lg
+                    bg-white border-2 border-black shadow-[3px_3px_0px_#000]
+                  "
+                >
+                  <img
+                    src={getAvatar(m.avatarId)}
+                    className="w-8 h-8 rounded-full"
+                  />
+                  <span className="font-medium">{m.name}</span>
+                </div>
+              ))
+            ) : (
+              <p className="italic text-gray-600">No members yet</p>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
   return (
-    <div className="bg-gray-200/60 rounded-3xl shadow-md p-8 w-full max-w-md max-h-[70vh] overflow-y-auto">
+    <div
+      className="
+        bg-white/90 rounded-[32px] p-8 
+        border-4 border-black
+        shadow-[8px_8px_0px_#000]
+        w-full max-w-md max-h-[70vh] overflow-y-auto
+      "
+    >
+      <h2
+        className="text-xl font-bold mb-4"
+        style={{ fontFamily: "'Bangers', sans-serif" }}
+      >
+        JOINED GROUP CHATS
+      </h2>
+      {joinedGroups.map((g) => renderGroup(g, "Chat"))}
 
-      {/* Joined Groups */}
-      <h2 className="font-semibold mb-4">Joined Group Chats</h2>
+      <h2
+        className="text-xl font-bold mt-6 mb-4"
+        style={{ fontFamily: "'Bangers', sans-serif" }}
+      >
+        OTHER GROUPS
+      </h2>
+      {otherGroups.map((g) => renderGroup(g, "Join"))}
 
-      {joinedGroups.length === 0 ? (
-        <p className="text-gray-500 text-sm mb-6">You haven&apos;t joined any groups yet.</p>
-      ) : (
-        joinedGroups.map((g) => (
-          <div key={g.name} className="bg-white p-4 rounded-xl shadow mb-6">
-            <div className="flex items-center mb-2">
-              <span className="font-semibold flex-1 text-lg">{g.name}</span>
-
-              <button
-                onClick={() => router.push(`/group/${encodeURIComponent(g.name)}`)}
-                className="px-3 py-1 bg-gray-200 rounded-md hover:bg-gray-300 transition font-medium"
-              >
-                Chat
-              </button>
-            </div>
-
-            <p className="text-sm text-gray-600">
-              Members: {g.members.join(", ")}
-            </p>
-          </div>
-        ))
-      )}
-
-      {/* Other Groups */}
-      <h2 className="font-semibold mb-4">Other Group Chats</h2>
-
-      {otherGroups.length === 0 ? (
-        <p className="text-gray-500 text-sm mb-6">No other groups available.</p>
-      ) : (
-        otherGroups.map((g) => (
-          <div key={g.name} className="bg-white p-4 rounded-xl shadow mb-6">
-            <div className="flex items-center mb-2">
-              <span className="font-semibold flex-1 text-lg">{g.name}</span>
-
-              <button
-                onClick={() => router.push(`/group/${encodeURIComponent(g.name)}`)}
-                className="px-3 py-1 bg-gray-200 rounded-md hover:bg-gray-300 transition font-medium"
-              >
-                Join
-              </button>
-            </div>
-
-            <p className="text-sm text-gray-600">
-              Members: {g.members.join(", ")}
-            </p>
-          </div>
-        ))
-      )}
-
-      {/* Create group */}
       <button
         onClick={() => router.push("/createGroup")}
-        className="bg-white px-4 py-2 rounded-md shadow-sm font-semibold hover:bg-gray-100 transition"
+        className="
+          bg-white mt-6 py-2 px-4 rounded-xl 
+          border-4 border-black shadow-[4px_4px_0px_#000]
+          font-bold hover:translate-y-1 transition w-full
+        "
       >
-        Create a new group
+        Create a New Group
       </button>
     </div>
   );
