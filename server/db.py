@@ -107,7 +107,7 @@ def get_dm_messages(dm_messages, sender, receiver):
         return []
 
 
-def save_group_message(group_messages, group_name, id ,sender, avatarId, timestamp, type, text, opponent, participants):
+def save_group_message(group_messages, group_name, id ,sender, avatarId, timestamp, type, text):
     """Persist a message document for group."""
     try:
         doc = {
@@ -116,9 +116,7 @@ def save_group_message(group_messages, group_name, id ,sender, avatarId, timesta
             "avatarId": avatarId,
             "timestamp": timestamp,
             "type": type, #"text" | "challenge" | "challenge_accepted" | "challenge_result"
-            "text": text,
-            "opponent": opponent,
-            "participants": participants
+            "text": text
         }
         group_messages.update_one(
             {"group_name": group_name},

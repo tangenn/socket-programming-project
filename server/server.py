@@ -43,9 +43,6 @@ async def disconnect(sid) :
 
         print(f'Client disconnected: {username} ({sid})')
 
-        online_users_list = list(user_to_sid.keys())
-        await sio.emit('online_users', {'users': online_users_list})
-
 
 @sio.event
 async def register(sid,data):
@@ -121,9 +118,6 @@ async def login(sid,data):
         print(f'User {username} logged in with sid {sid}')
         await sio.emit('login_success', {'username': username}, to=sid)
 
-        online_users_list = list(user_to_sid.keys())
-        await sio.emit('online_users', {'users': online_users_list})
-
     except Exception as e:
         # --- THIS IS THE CRASH-PROOFING ---
         # 1. Print the real error to your server console for debugging
@@ -138,7 +132,6 @@ async def dm(sid ,data):
     receiver = data.get('receiver')
     content = data.get('content')
     timestamp = datetime.now(timezone.utc)
-    
     if not sender or not receiver or not content:
         await sio.emit('dm_error', {'message': 'Invalid DM data'}, to=sid)
         return
@@ -166,15 +159,7 @@ async def dm_history(sid, data) :
     sender = sid_to_user.get(sid)
     receiver = data.get('receiver')
     history = await asyncio.to_thread(db.get_dm_messages,dm_messages ,sender, receiver)
-
-    serializable_history = []
-    for msg in history:
-        serializable_msg = msg.copy()
-        if 'timestamp' in serializable_msg and isinstance(serializable_msg['timestamp'], datetime):
-            serializable_msg['timestamp'] = serializable_msg['timestamp'].isoformat()
-        serializable_history.append(serializable_msg)
-
-    await sio.emit('dm_history', {'history': serializable_history}, to=sid)
+    await sio.emit('dm_history', {'history': history}, to=sid)
 
 @sio.event
 async def join_group(sid,data):
@@ -260,8 +245,6 @@ async def group_message(sid,data):
     timestamp = datetime.now(timezone.utc)
     type = "text"
     text = data.get("text")
-    opponent = None
-    participants = None
 
     message_payload = {
         "id": id,
@@ -269,12 +252,10 @@ async def group_message(sid,data):
         "avatarId": avatarId,
         "timestamp": timestamp.isoformat(),
         "type": type,
-        "text": text,
-        "opponent": opponent,
-        "participants": participants
+        "text": text
     }
 
-    print(f"Received group {group_name} message: {message_payload}")
+    print(f"Received group {group_name} +message: {message_payload}")
 
     if not sender or not group_name or not text:
         await sio.emit('group_message_error', {'message': 'Invalid group message data'}, to=sid)
@@ -292,15 +273,7 @@ async def group_message(sid,data):
 async def group_history(sid, data):
     group_name = data.get('group_name')
     history = await asyncio.to_thread(db.get_group_messages, group_messages ,group_name)
-
-    serializable_history = []
-    for msg in history:
-        serializable_msg = msg.copy()
-        if 'timestamp' in serializable_msg and isinstance(serializable_msg['timestamp'], datetime):
-            serializable_msg['timestamp'] = serializable_msg['timestamp'].isoformat()
-        serializable_history.append(serializable_msg)
-
-    await sio.emit('group_history', {'history': serializable_history}, to=sid)
+    await sio.emit('group_history', {'history': history}, to=sid)
 
 
 @sio.event
@@ -329,12 +302,22 @@ async def group_challenge(sid,data):
     id = data.get('id')
     sender = sid_to_user.get(sid)
     avatarId = data.get('avatarId')
-    timestamp = datetime.now(timezone.utc)
+    timestamp = datetime.now(timezone.utc).isoformat()
     type = "challenge"
-    text = data.get("text")
-    opponent = None
-    participants = None
+    text = f"{username} has challenged you to a game of Rock-Paper-Scissors!"
 
+    message_payload = {
+        "id": id,
+        "sender": sender,
+        "avatarId": avatarId,
+        "timestamp": timestamp,
+        "type": type,
+        "text": text
+    }
+
+    await asyncio.to_thread(db.save_group_message, group_messages, group_name, id ,sender, avatarId, timestamp, type, text)
+
+    await sio.emit('group_message',{'message': message_payload}, to=group_name)
 
 # response for challenge
 @sio.event
@@ -439,13 +422,11 @@ async def selectedRPS(sid,data):
             'player_two_selected': p2_selected
         }, to=game_room_id)
 
-        del active_games[game_room_id]
-
         #if want to store log 
         # timestamp = datetime.now(timezone.utc)
         # await asyncio.to_thread(db.save_game_result,  ,result, p1_id, p2_id, timestamp)
 
 
-# #if want to get score board 
+#if want to get score board 
 # @sio.event
 # async def getScoreBoard(sid,data):
