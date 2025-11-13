@@ -265,7 +265,7 @@ async def group_message(sid,data):
         "participants": participants
     }
 
-    print(f"Received group {group_name} +message: {message_payload}")
+    print(f"Received group {group_name} message: {message_payload}")
 
     if not sender or not group_name or not text:
         await sio.emit('group_message_error', {'message': 'Invalid group message data'}, to=sid)
@@ -305,7 +305,7 @@ async def getMe(sid) :
 # ---- mini game rock paper scissor ------
 # JUST 1 VS 1 version multiplayer not yet implement
 @sio.event 
-async def challenge(sid,data):
+async def group_challenge(sid,data):
     username = sid_to_user.get(sid)
     
     group_name = data.get('group_name')
@@ -313,7 +313,7 @@ async def challenge(sid,data):
     sender = sid_to_user.get(sid)
     avatarId = data.get('avatarId')
     timestamp = datetime.now(timezone.utc)
-    type = "text"
+    type = "challenge"
     text = data.get("text")
     opponent = None
     participants = None
@@ -321,7 +321,7 @@ async def challenge(sid,data):
 
 # response for challenge
 @sio.event
-async def challenge_response(sid,data):
+async def group_challenge_response(sid,data):
     # opponent will accept or reject challenge
     opponent_id = sid_to_user.get(sid)
     # data = { 'challenge_name': 'username', 'accepted': True }
