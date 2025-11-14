@@ -29,7 +29,7 @@ interface ServerToClientEvents {
 
 // Define the types for events your client *sends* to the server
 interface ClientToServerEvents {
-  register: (data: { username: string; password: string }) => void;
+  register: (data: { username: string; password: string; avatarId?: number }) => void;
   login: (data: { username: string; password: string }) => void;
   select_avatar: (data: { avatarId: number }) => void;
   dm: (data: { receiver: string; content: string }) => void;
