@@ -47,102 +47,144 @@ export function UsersPanel({ currentUser }: UsersPanelProps) {
   return (
     <div
       className="
-        bg-white/90 rounded-[32px] p-8 
+        bg-[#ffffffdd]
         border-4 border-black
         shadow-[8px_8px_0px_#000]
-        w-full max-w-md max-h-[70vh] overflow-y-auto
+        rounded-[32px]
+        p-6 
+        w-full max-w-md
+        max-h-[70vh]
+        overflow-y-auto
       "
     >
       {/* Current User */}
       <div
         className="
-          flex items-center gap-3 bg-white 
-          p-4 rounded-xl mb-4
+          flex items-center gap-3 
+          bg-white
           border-4 border-black
+          rounded-2xl
+          px-4 py-3
           shadow-[4px_4px_0px_#000]
+          mb-6
         "
       >
         <img
           src={getAvatar(currentUser.avatarId)}
           alt="pfp"
-          className="w-12 h-12 rounded-full object-cover"
+          className="w-12 h-12 rounded-full border-2 border-black object-cover"
         />
-        <span className="font-semibold flex-1 text-lg">{currentUser.name}</span>
+        <span className="font-bold flex-1 text-lg">{currentUser.name}</span>
       </div>
 
-      {/* Change Avatar */}
+      {/* Change Avatar Button */}
       <button
         onClick={() => router.push("/avatarSelection")}
         className="
-          w-full bg-white py-2 rounded-xl 
-          border-4 border-black shadow-[4px_4px_0px_#000]
-          font-bold hover:translate-y-1 transition
+          w-full 
+          bg-yellow-400 
+          text-black 
+          font-bold 
+          py-3
+          rounded-xl 
+          border-4 border-black 
+          shadow-[4px_4px_0px_#000]
+          hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[5px_5px_0px_#000]
+          active:translate-x-[2px] active:translate-y-[2px] active:shadow-[2px_2px_0px_#000]
+          transition-all
+          mb-6
         "
       >
-        Change Avatar
+        CHANGE AVATAR
       </button>
 
-      <h2 className="font-semibold mb-3">
-        Online Users ({onlineUsers.length})
-      </h2>
-
-      {/* Online Users */}
-      {onlineUsers.length === 0 ? (
-        <div className="text-gray-500 text-center py-4">
-          No other users online
-          {/* Connected Users header */}
-          {/* <!--       <h2
-        className="mt-6 mb-3 text-xl font-bold tracking-wide"
+      {/* Connected Users Header */}
+      <h2
+        className="
+          mb-4 
+          text-xl 
+          font-bold 
+          tracking-wide
+        "
         style={{ fontFamily: "'Bangers', sans-serif" }}
       >
-        CONNECTED USERS
+        ONLINE USERS ({onlineUsers.length})
       </h2>
- --> */}
-          {/* User List */}
-          {/* <!--       {connectedUsers.map((u) => (
-        <div
-          key={u.name}
-          className="
-            flex items-center gap-3 p-3 mb-3 
-            bg-white rounded-xl
-            border-4 border-black shadow-[4px_4px_0px_#000]
-          "
-        >
-          <img
-            src={getAvatar(u.avatarId)}
-            alt={u.name}
-            className="w-10 h-10 rounded-full object-cover"
-          />
-          <span className="font-semibold flex-1">{u.name}</span> --> */}
-        </div>
-      ) : (
-        onlineUsers.map((username) => (
-          <div
-            key={username}
-            className="bg-white w-full p-4 mb-3 rounded-xl shadow flex items-center"
-          >
-            <div className="relative mr-3">
-              <img
-                src="/fallback.png"
-                alt="pfp"
-                className="w-10 h-10 rounded-full object-cover"
-              />
-              {/* Online indicator */}
-              <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></div>
-            </div>
-            <span className="font-semibold flex-1">{username}</span>
 
-            <button
-              onClick={() =>
-                router.push(`/private/${encodeURIComponent(username)}`)
-              }
-              className="px-3 py-1 bg-gray-200 rounded-md font-medium hover:bg-gray-300 transition"
-            >
-              Chat
-            </button>
+      {/* Online Users List */}
+      <div className="flex flex-col gap-4">
+        {onlineUsers.length === 0 ? (
+          <div
+            className="
+              text-gray-500 
+              text-center 
+              py-8
+              bg-white
+              border-2 border-black
+              rounded-2xl
+              shadow-[4px_4px_0px_#000]
+            "
+          >
+            No other users online
           </div>
-        ))
-      )}
+        ) : (
+          onlineUsers.map((username) => (
+            <div
+              key={username}
+              className="
+                hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[5px_5px_0px_#000]
+                active:translate-x-[2px] active:translate-y-[2px] active:shadow-[2px_2px_0px_#000]
+                transition-all
+                flex items-center gap-3 
+                bg-white
+                border-2 border-black
+                rounded-2xl
+                px-4 py-3
+                shadow-[4px_4px_0px_#000]
+              "
+            >
+              <div className="relative">
+                <img
+                  src="/fallback.png"
+                  alt={username}
+                  className="
+                    w-10 h-10 
+                    rounded-full 
+                    border-2 border-black
+                    object-cover
+                  "
+                />
+                {/* Online indicator */}
+                <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-black"></div>
+              </div>
+
+              <span className="font-semibold flex-1 text-gray-800">
+                {username}
+              </span>
+
+              <button
+                onClick={() =>
+                  router.push(`/private/${encodeURIComponent(username)}`)
+                }
+                className="
+                  px-4 py-2
+                  bg-blue-400
+                  text-black
+                  font-bold
+                  rounded-lg
+                  border-2 border-black
+                  shadow-[3px_3px_0px_#000]
+                  hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-[4px_4px_0px_#000]
+                  active:translate-x-[1px] active:translate-y-[1px] active:shadow-[2px_2px_0px_#000]
+                  transition-all
+                "
+              >
+                Chat
+              </button>
+            </div>
+          ))
+        )}
+      </div>
     </div>
   );
 }

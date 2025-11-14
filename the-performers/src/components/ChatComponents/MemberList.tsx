@@ -35,12 +35,15 @@ export function MemberList({
           <div
             key={m.name}
             className="
-              flex items-center gap-3 
-              bg-white
-              border-2 border-black
-              rounded-2xl
-              px-3 py-2
-              shadow-[4px_4px_0px_#000]
+              hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[5px_5px_0px_#000]
+  active:translate-x-[2px] active:translate-y-[2px] active:shadow-[2px_2px_0px_#000]
+  transition-all
+  flex items-center gap-3 
+  bg-white
+  border-2 border-black
+  rounded-2xl
+  px-3 py-2
+  shadow-[4px_4px_0px_#000]
             "
           >
             <img
