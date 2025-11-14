@@ -1,4 +1,5 @@
 export const avatarMap: Record<number, string> = {
+  0: "/avatars/fallback.png",
   1: "/avatars/1.jpg",
   2: "/avatars/2.jpg",
   3: "/avatars/3.jpg",

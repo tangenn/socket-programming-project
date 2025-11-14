@@ -48,19 +48,25 @@ export default function PrivateChatPage() {
     const onDmHistory = (data: { history: any[] }) => {
       console.log('Received DM history:', data.history);
       
-      // Extract receiver's avatar from history if not already set
-      if (receiverAvatarId === undefined && data.history.length > 0) {
-        // Find a message from the receiver
-        const receiverMessage = data.history.find((msg: any) => msg.sender === receiverUsername);
-        if (receiverMessage && receiverMessage.avatarId !== undefined) {
-          setReceiverAvatarId(receiverMessage.avatarId);
-        }
-      }
-      
       // Transform backend format to MessageType format
       const transformedMessages: MessageType[] = data.history.map((msg: any, index: number) => {
         const isSelf = msg.sender === currentUser;
-        const avatarId = msg.avatarId || (isSelf ? currentUserAvatarId : receiverAvatarId);
+        
+        // Server sends 'sender_avatar' field for each message
+        // Use sender_avatar if available, otherwise fall back to current user's avatar
+        let avatarId: number | undefined;
+        if (msg.sender_avatar !== undefined) {
+          avatarId = msg.sender_avatar;
+        } else if (isSelf && currentUserAvatarId !== undefined) {
+          avatarId = currentUserAvatarId;
+        } else if (!isSelf && receiverAvatarId !== undefined) {
+          avatarId = receiverAvatarId;
+        }
+        
+        // Update receiver's avatar if we see a message from them
+        if (!isSelf && msg.sender_avatar !== undefined && receiverAvatarId === undefined) {
+          setReceiverAvatarId(msg.sender_avatar);
+        }
         
         return {
           id: msg._id || String(index),
