@@ -6,6 +6,7 @@ import { socket } from "@/socket";
 import { getAvatar } from "@/utils/avatarMap";
 
 type Member = { name: string; avatarId?: number };
+type RawMember = { username?: string; name?: string; avatarId?: number } | string;
 type Group = { name: string; members: Member[] };
 
 export function GroupChatsPanel() {
@@ -22,27 +23,59 @@ export function GroupChatsPanel() {
     function onMe(data: { username: string | null }) {
       if (data.username) {
         setCurrentUsername(data.username);
+        socket.emit("get_available_groups");
       }
     }
 
-    // Request available groups from server
-    socket.emit("get_available_groups");
+    
 
     // Listen for available groups response
     function onAvailableGroups(data: { groups: any[] }) {
       console.log("Received groups:", data.groups);
 
-      // Transform the data from the server format to our Group format
       const groups: Group[] = data.groups.map((group: any) => ({
         name: group.name || group.group_name || "",
-        members: group.members || [],
+        members: [],
       }));
 
       setAvailableGroups(groups);
+
+      groups.forEach((group) => {
+        if (group.name) {
+          socket.emit("get_group_members" as any, { group_name: group.name });
+        }
+      });
+    }
+
+    function normalizeMembers(members: RawMember[]): Member[] {
+      return members.map((member) => {
+        if (typeof member === "string") {
+          return { name: member, avatarId: undefined };
+        }
+
+        return {
+          name: member.username ?? member.name ?? "Unknown",
+          avatarId: member.avatarId,
+        };
+      });
+    }
+
+    function onGroupMembers(data: { group_name: string; members: RawMember[] }) {
+      setAvailableGroups((prev) =>
+        prev.map((group) =>
+          group.name === data.group_name
+            ? {
+                ...group,
+                members: normalizeMembers(data.members || []),
+              }
+            : group,
+        ),
+      );
     }
 
     socket.on('me', onMe);
     socket.on("available_groups", onAvailableGroups);
+    socket.on("group_members" as any, onGroupMembers);
 
     // Refresh groups when a new group is created
     function onCreateGroupSuccess() {
@@ -54,6 +87,7 @@ export function GroupChatsPanel() {
     return () => {
       socket.off('me', onMe);
       socket.off("available_groups", onAvailableGroups);
+      socket.off("group_members" as any, onGroupMembers);
       socket.off("create_group_success", onCreateGroupSuccess);
     };
   }, []);
@@ -62,9 +96,12 @@ export function GroupChatsPanel() {
   const joinedGroups = availableGroups.filter((g) =>
     g.members.some((member) => member.name === currentUsername)
   );
+
+  
   const otherGroups = availableGroups.filter(
     (g) => !g.members.some((member) => member.name === currentUsername)
   );
+ 
 
   const toggleGroup = (g: string) =>
     setOpenGroup((prev) => (prev === g ? null : g));
