@@ -223,7 +223,7 @@ async def create_group(sid,data):
     
     # Check if group already exists
     try:
-        await asyncio.to_thread(db.create_group_if_missing, groups, group_name)
+        await asyncio.to_thread(db.create_group_if_missing, groups, group_messages, group_name)
     except Exception as e:
         # If your create_group_if_missing raises an error when group exists
         await sio.emit('create_group_error', {'message': f'Group "{group_name}" already exists'}, to=sid)
@@ -231,7 +231,7 @@ async def create_group(sid,data):
     
     
         # Create the group
-    await asyncio.to_thread(db.create_group_if_missing, groups, group_name)
+    await asyncio.to_thread(db.create_group_if_missing, groups, group_messages, group_name)
     
     # Add creator as member
     sio.enter_room(sid, group_name)
