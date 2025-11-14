@@ -57,7 +57,7 @@ async def register(sid,data):
         await sio.emit('register_error', {'message': 'Username and password are required'} , to=sid)
         return
     
-    is_existing = await asyncio.to_thread(db.add_user_to_db , users, username , password)
+    is_existing = await asyncio.to_thread(db.add_user_to_db , users, username , password, avatarId=1, online=False)
 
     if not is_existing:
         await sio.emit('register_error', {'message': 'Username has already been taken'}, to=sid)
