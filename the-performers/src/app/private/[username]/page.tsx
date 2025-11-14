@@ -20,6 +20,8 @@ export default function PrivateChatPage() {
   useEffect(() => {
     // Get current user
     socket.emit('getMe');
+    // Get online users to fetch receiver's avatar
+    socket.emit('online_users');
 
     const onMe = (data: { username: string | null; avatarId?: number }) => {
       if (!data.username) {
@@ -34,9 +36,26 @@ export default function PrivateChatPage() {
       setIsLoading(false);
     };
 
+    // Listen for online users to get receiver's avatar
+    const onOnlineUsers = (data: { users: Array<{ username: string; avatarId?: number }> }) => {
+      const receiver = data.users.find(u => u.username === receiverUsername);
+      if (receiver && receiver.avatarId !== undefined) {
+        setReceiverAvatarId(receiver.avatarId);
+      }
+    };
+
     // Listen for DM history
     const onDmHistory = (data: { history: any[] }) => {
       console.log('Received DM history:', data.history);
+      
+      // Extract receiver's avatar from history if not already set
+      if (receiverAvatarId === undefined && data.history.length > 0) {
+        // Find a message from the receiver
+        const receiverMessage = data.history.find((msg: any) => msg.sender === receiverUsername);
+        if (receiverMessage && receiverMessage.avatarId !== undefined) {
+          setReceiverAvatarId(receiverMessage.avatarId);
+        }
+      }
       
       // Transform backend format to MessageType format
       const transformedMessages: MessageType[] = data.history.map((msg: any, index: number) => {
@@ -102,6 +121,7 @@ export default function PrivateChatPage() {
     };
 
     socket.on('me', onMe);
+    socket.on('online_users', onOnlineUsers);
     socket.on('dm_history', onDmHistory);
     socket.on('dm', onDm);
     socket.on('server_message', onServerMessage);
@@ -109,6 +129,7 @@ export default function PrivateChatPage() {
 
     return () => {
       socket.off('me', onMe);
+      socket.off('online_users', onOnlineUsers);
       socket.off('dm_history', onDmHistory);
       socket.off('dm', onDm);
       socket.off('server_message', onServerMessage);
