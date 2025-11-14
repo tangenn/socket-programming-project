@@ -60,6 +60,16 @@ def add_user_to_db(users, username, password, avatarId, online):
         print("add_user_to_db error:", e)
         return False
 
+def update_user_avatar(users, username, avatarId):
+    try:
+        users.update_one(
+            {"username": username},
+            {"$set": {"avatar_id": avatarId}}
+        )
+        print(f"Updated avatar for user '{username}' to '{avatarId}'.")
+    except Exception as e:
+        print("update_user_avatar error:", e)
+
 def check_credentials(users,username,password):
         user = users.find_one({"username": username})
         if not user:

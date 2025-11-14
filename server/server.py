@@ -131,6 +131,16 @@ async def login(sid,data):
         await sio.emit('login_error', {'message': 'A server error occurred. Please try again.'}, to=sid)
 
 @sio.event
+async def select_avatar(sid,data):
+    username = sid_to_user.get(sid)
+    avatarId = data.get('avatarId')
+
+    if not username or avatarId is None: 
+        return
+    await asyncio.to_thread(db.update_user_avatar,users ,username, avatarId)
+    await sio.emit('avatar_selected', {'avatarId': avatarId}, to=sid)
+
+@sio.event
 async def dm(sid ,data):
     sender = sid_to_user.get(sid)
     receiver = data.get('receiver')
@@ -331,7 +341,7 @@ def calculate_rps_winner(p1_id, p1_move, p2_id, p2_move):
         # Player 2 wins
         return {'draw': False, 'winner': p2_id, 'loser': p1_id}
     
-# ตั้งเวลาหมดอายุกัย สร้างเยอะเกิน
+# ตั้งเวลาหมดอายุ
 async def expire_challenge(challenger_sid, group_name, message_id):
     await asyncio.sleep(120) #วินาที
 
