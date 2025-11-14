@@ -309,7 +309,22 @@ async def group_history(sid, data):
 async def get_group_members(sid, data):
     group_name = data.get('group_name')
     members = await asyncio.to_thread(db.get_group_members, groups, group_name)
-    await sio.emit('group_members', {'group_name': group_name, 'members': members}, to=sid)
+
+    # fetch avatar ids for everyone in the group (online or not)
+    members_with_avatars = await asyncio.to_thread(
+        db.get_users_with_avatars,
+        users,
+        members
+    )
+
+    await sio.emit(
+        'group_members',
+        {
+            'group_name': group_name,
+            'members': members_with_avatars  # [{username, avatarId}, ...]
+        },
+        to=sid
+    )
 
 @sio.event
 async def online_users(sid):
