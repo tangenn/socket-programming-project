@@ -33,7 +33,8 @@ export function PrivateChatLayout({
           rounded-[32px]
           border-4 border-black
           shadow-[12px_12px_0px_#000]
-          p-10 
+          p-10
+          mt-10 
         "
       >
         {/* Header (Avatar + Name) */}

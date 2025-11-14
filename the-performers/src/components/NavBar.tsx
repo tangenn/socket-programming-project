@@ -61,7 +61,7 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="w-full bg-gray-200 shadow-sm px-6 py-4 flex items-center justify-between">
+    <nav className="fixed top-0 left-0 w-full z-50 bg-gray-200 shadow-sm px-6 py-4 flex items-center justify-between">
       <h1 className="text-3xl font-black">PRF</h1>
 
       <div className="flex items-center gap-6 font-semibold">
@@ -70,9 +70,9 @@ export default function Navbar() {
         {username ? (
           <button 
             onClick={handleLogout}
-            className="hover:opacity-70 transition cursor-pointer"
+            className="hover:opacity-70 text-red-400 transition cursor-pointer hover:text-red-600"
           >
-            Log out of {username}
+            Log Out Of {username}
           </button>
         ) : (
           <Link href="/login" className="hover:opacity-70 transition cursor-pointer">Login</Link>
@@ -87,9 +87,6 @@ export default function Navbar() {
               isConnected ? 'bg-green-500' : 'bg-red-500 animate-pulse'
             }`}
           ></div>
-          <span className="text-sm font-medium">
-            {isConnected ? 'Connected' : 'Connecting...'}
-          </span>
         </div>
       )}
     </nav>

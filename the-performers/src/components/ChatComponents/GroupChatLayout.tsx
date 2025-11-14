@@ -10,10 +10,16 @@ export function GroupChatLayout({
   groupName,
   members,
   messages,
+  onSendMessage,
+  onSendChallenge,
+  onAcceptChallenge,
 }: {
   groupName: string;
   members: { name: string; avatarId: number }[];
   messages: MessageType[];
+  onSendMessage?: (content: string) => void;
+  onSendChallenge?: (selectedRPS: string) => void;
+  onAcceptChallenge?: (challengerId: string, selectedRPS: string) => void;
 }) {
   const [showRPS, setShowRPS] = React.useState(false);
 
@@ -53,10 +59,11 @@ export function GroupChatLayout({
               hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[5px_5px_0px_#000]
             active:translate-x-[2px] active:translate-y-[2px] active:shadow-[2px_2px_0px_#000]
             transition-all
+            mt-10 
             "
-            onClick={() => alert("Delete group clicked")}
+            onClick={() => alert("Leave group clicked")}
           >
-            Delete Group
+            Leave Group
           </button>
         </div>
 
@@ -67,9 +74,9 @@ export function GroupChatLayout({
             <ChatMessages messages={messages} isGroup shrink={showRPS} />
 
             <div className="mt-4">
-              <RPSSelector open={showRPS} />
+              <RPSSelector open={showRPS} onSendChallenge={onSendChallenge} />
 
-              <ChatInput onToggleRPS={() => setShowRPS((v) => !v)} />
+              <ChatInput onToggleRPS={() => setShowRPS((v) => !v)} onSendMessage={onSendMessage} />
             </div>
           </div>
 
