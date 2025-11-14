@@ -154,6 +154,14 @@ async def dm_history(sid, data) :
     receiver = data.get('receiver')
     history = await asyncio.to_thread(db.get_dm_messages,dm_messages ,sender, receiver)
 
+    sender_avatar = await asyncio.to_thread(db.get_user_avatar, users, sender)
+    # receiver_avatar = await asyncio.to_thread(db.get_user_avatar, users, receiver)
+
+    for msg in history:
+        msg['sender_avatar'] = sender_avatar
+        # msg['receiver_avatar'] = receiver_avatar
+    
+    
     serializable_history = []
     for msg in history:
         serializable_msg = msg.copy()
@@ -275,6 +283,18 @@ async def group_message(sid,data):
 async def group_history(sid, data):
     group_name = data.get('group_name')
     history = await asyncio.to_thread(db.get_group_messages, group_messages ,group_name)
+
+    senders = {msg.get('sender') for msg in history if msg.get('sender')}
+    if senders:
+        avatars_list = await asyncio.to_thread(db.get_users_with_avatars, users, list(senders))
+        avatar_map = {u['username']: u.get('avatarId') for u in avatars_list}
+    else:
+        avatar_map = {}
+    
+    for msg in history:
+        sender = msg.get('sender')
+        if sender:
+            msg['sender_avatar'] = avatar_map.get(sender)
 
     serializable_history = []
     for msg in history:
