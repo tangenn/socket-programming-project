@@ -277,8 +277,8 @@ async def group_message(sid,data):
     # print("BYPASS: Skipped saving message to DB")
     # --- END BYPASS ---
 
-    await sio.emit('group_message',{'from': sender, 'to': group_name ,'content': text,'timestamp': timestamp.isoformat()}, to=group_name)
-
+    await sio.emit('group_message', message_payload, to=group_name)
+    
 @sio.event
 async def group_history(sid, data):
     group_name = data.get('group_name')
@@ -304,7 +304,7 @@ async def group_history(sid, data):
         serializable_history.append(serializable_msg)
 
     await sio.emit('group_history', {'history': serializable_history}, to=sid)\
-    
+
 @sio.event
 async def get_group_members(sid, data):
     group_name = data.get('group_name')
@@ -314,7 +314,6 @@ async def get_group_members(sid, data):
 @sio.event
 async def online_users(sid):
     online_users_list = list(user_to_sid.keys())
-    
     # Get avatar information for all online users
     users_with_avatars = await asyncio.to_thread(
         db.get_users_with_avatars, 
