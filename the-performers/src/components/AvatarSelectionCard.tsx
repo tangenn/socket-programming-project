@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 
 export function AvatarSelectionCard() {
-  const avatars = Object.entries(avatarMap);
+  const avatars = Object.entries(avatarMap).filter(([id]) => (id !== "0" && id !== "21"));
   const router = useRouter();
   const [selectedAvatar, setSelectedAvatar] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);

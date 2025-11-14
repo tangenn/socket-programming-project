@@ -13,6 +13,7 @@ export function GroupChatLayout({
   onSendMessage,
   onSendChallenge,
   onAcceptChallenge,
+  onLeaveGroup,
 }: {
   groupName: string;
   members: { name: string; avatarId: number }[];
@@ -20,11 +21,12 @@ export function GroupChatLayout({
   onSendMessage?: (content: string) => void;
   onSendChallenge?: (selectedRPS: string) => void;
   onAcceptChallenge?: (challengerId: string, selectedRPS: string) => void;
+  onLeaveGroup?: () => void;
 }) {
   const [showRPS, setShowRPS] = React.useState(false);
 
   return (
-    <div className="min-h-screen relative flex justify-center items-start p-10">
+    <div className="min-h-screen relative flex justify-center items-start p-10 mt-10">
       {/* --- Background Comic Wallpaper --- */}
       <div className="absolute inset-0 bg-[url('/backgrounds/background_Noir.jpg')] bg-cover bg-center bg-fixed opacity-90" />
 
@@ -61,7 +63,7 @@ export function GroupChatLayout({
             transition-all
             mt-10 
             "
-            onClick={() => alert("Leave group clicked")}
+            onClick={onLeaveGroup}
           >
             Leave Group
           </button>

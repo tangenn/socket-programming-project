@@ -1,178 +1,242 @@
+
+"use client";
+
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter, useParams } from "next/navigation";
+import { socket } from "@/socket";
 import { GroupChatLayout } from "@/components/ChatComponents/GroupChatLayout";
 import { MessageType } from "@/components/ChatComponents/ChatMessages";
 
-// Mock Data
-const groupMessages: MessageType[] = [
-  {
-    id: "1",
-    sender: "Tan",
-    avatarId: 1,
-    timestamp: "11:00",
-    isSelf: false,
-    type: "text",
-    text: "Anyone up for RPS?",
-  },
-  {
-    id: "3",
-    sender: "Aea",
-    avatarId: 8,
-    timestamp: "11:03",
-    isSelf: false,
-    type: "challenge_accepted",
-    participants: ["Aea", "Tan"],
-  },
-  {
-    id: "4",
-    sender: "System",
-    timestamp: "11:04",
-    isSelf: false,
-    type: "challenge_result",
-    participants: [],
-  },
-  {
-    id: "5",
-    sender: "You",
-    avatarId: 2,
-    timestamp: "11:05",
-    isSelf: true,
-    type: "text",
-    text: "Let's do more",
-  },
-  {
-    id: "6",
-    sender: "Tan",
-    avatarId: 1,
-    timestamp: "11:05",
-    isSelf: false,
-    type: "text",
-    text: "Sure thing!",
-  },
-  {
-    id: "7",
-    sender: "Aea",
-    avatarId: 8,
-    timestamp: "11:06",
-    isSelf: false,
-    type: "challenge_accepted",
-    participants: ["Tan", "You"],
-  },
-  {
-    id: "8",
-    sender: "System",
-    timestamp: "11:06",
-    isSelf: true,
-    type: "challenge_result",
-    participants: ["Tan", "You"],
-  },
-  {
-    id: "9",
-    sender: "Tan",
-    avatarId: 1,
-    timestamp: "11:06",
-    isSelf: false,
-    type: "text",
-    text: "ez",
-  },
-  {
-    id: "10",
-    sender: "You",
-    avatarId: 2,
-    timestamp: "11:06",
-    isSelf: true,
-    type: "text",
-    text: "again",
-  },
-  {
-    id: "11",
-    sender: "You",
-    avatarId: 2,
-    timestamp: "11:06",
-    isSelf: true,
-    type: "challenge",
-  },
-  {
-    id: "12",
-    sender: "Mhee",
-    avatarId: 2,
-    timestamp: "11:06",
-    isSelf: false,
-    type: "challenge",
-  },
-  {
-    id: "13",
-    sender: "You",
-    avatarId: 2,
-    timestamp: "11:16",
-    isSelf: true,
-    type: "text",
-    text: "long text to test wrapping behavior in the chat message bubble. Let's see how it looks when the text is really long and needs to wrap onto multiple lines.",
-  },
-  {
-    id: "14",
-    sender: "Aea",
-    avatarId: 8,
-    timestamp: "11:16",
-    isSelf: false,
-    type: "text",
-    text: "long text to test wrapping behavior in the chat message bubble. Let's see how it looks when the text is really long and needs to wrap onto multiple lines.",
-  },
-  {
-    id: "15",
-    sender: "Mhee",
-    avatarId: 0,
-    timestamp: "11:17",
-    isSelf: false,
-    type: "text",
-    text: "long text to test wrapping behavior in the chat message bubble. Let's see how it looks when the text is really long and needs to wrap onto multiple lines. Adding even more text to ensure it wraps correctly across multiple lines in the chat interface.",
-  },
-  {
-    id: "16",
-    sender: "You",
-    avatarId: 2,
-    timestamp: "11:17",
-    isSelf: true,
-    type: "text",
-    text: "long text to test wrapping behavior in the chat message bubble. Let's see how it looks when the text is really long and needs to wrap onto multiple lines. Adding even more text to ensure it wraps correctly across multiple lines in the chat interface.",
-  },
-];
+type GroupMember = { name: string; avatarId: number };
+type RawGroupMember = { username?: string; name?: string; avatarId?: number } | string;
+type GroupMembersEvent = { group_name: string; members: RawGroupMember[] };
+type OnlineUser = { username: string; avatarId?: number };
 
-const groupMembers = [
-  { name: "Tan1", avatarId: 1 },
-  { name: "Tan2", avatarId: 2 },
-  { name: "Tan3", avatarId: 3 },
-  { name: "Tan4", avatarId: 4 },
-  { name: "Tan5", avatarId: 5 },
-  { name: "Tan6", avatarId: 6 },
-  { name: "Tan7", avatarId: 7 },
-  { name: "Aea", avatarId: 8 },
-  { name: "Tan9", avatarId: 9 },
-  { name: "Tan10", avatarId: 10 },
-  { name: "Tan11", avatarId: 11 },
-  { name: "Tan12", avatarId: 12 },
-  { name: "Tan13", avatarId: 13 },
-  { name: "Tan14", avatarId: 14 },
-  { name: "Tan15", avatarId: 15 }, 
-  { name: "Tan16", avatarId: 16 },
-  { name: "Tan17", avatarId: 17 },
-  { name: "Tan18", avatarId: 18 },
-  { name: "Tan19", avatarId: 19 },
-  { name: "Tan20", avatarId: 20 },
-  { name: "Tan21", avatarId: 21 },
-  { name: "Tan22", avatarId: 22 },
-  { name: "Tan23", avatarId: 23 },
-  { name: "Tan24", avatarId: 24 },
-  { name: "Tan25", avatarId: 25 },
-];
+export default function GroupPage() {
+  const params = useParams();
+  const groupName = params.groupName as string;
+  const router = useRouter();
 
-export default function Page({ params }: { params: { groupName: string } }) {
-  const { groupName } = params;
+  const [members, setMembers] = useState<GroupMember[]>([]);
+  const [messages, setMessages] = useState<MessageType[]>([]);
+  const [currentUser, setCurrentUser] = useState<string | null>(null);
+  const [currentAvatarId, setCurrentAvatarId] = useState<number | undefined>();
+  const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([]);
 
+  const membersRef = useRef<GroupMember[]>([]);
+  const currentUserRef = useRef<string | null>(null);
+  const currentAvatarRef = useRef<number | undefined>(undefined);
+  const hasRequestedHistory = useRef(false);
+  const onlineUsersRef = useRef<OnlineUser[]>([]);
+  const isInitialized = useRef(false);
+
+  useEffect(() => {
+    membersRef.current = members;
+  }, [members]);
+
+  useEffect(() => {
+    currentUserRef.current = currentUser;
+  }, [currentUser]);
+
+  useEffect(() => {
+    currentAvatarRef.current = currentAvatarId;
+  }, [currentAvatarId]);
+
+  useEffect(() => {
+    onlineUsersRef.current = onlineUsers;
+  }, [onlineUsers]);
+
+  const formatTimestamp = useCallback((value?: string) => {
+    if (!value) return new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+    }
+    return date.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+  }, []);
+
+  const resolveAvatar = useCallback((sender?: string, explicit?: number) => {
+    if (explicit !== undefined) return explicit;
+    if (!sender) return undefined;
+    if (sender === currentUserRef.current) return currentAvatarRef.current;
+    const member = membersRef.current.find((m) => m.name === sender);
+    return member?.avatarId;
+  }, []);
+
+  const normalizeMessage = useCallback(
+    (payload: any): MessageType => {
+      const sender = payload.sender ?? payload.from ?? "Server";
+      const rawType = payload.type;
+      const supportedTypes: MessageType["type"][] = ["text", "challenge", "challenge_accepted", "challenge_result"];
+      const messageType = supportedTypes.includes(rawType) ? rawType : "text";
+
+      return {
+        id: payload.id || payload._id || `${sender}-${Date.now()}`,
+        sender,
+        avatarId: resolveAvatar(sender, payload.avatarId ?? payload.sender_avatar),
+        timestamp: formatTimestamp(payload.timestamp),
+        isSelf: sender === currentUserRef.current,
+        type: messageType,
+        text: payload.text ?? payload.content ?? "",
+        opponent: payload.opponent,
+        participants: payload.participants,
+      };
+    },
+    [formatTimestamp, resolveAvatar],
+  );
+
+  const requestMembers = useCallback(() => {
+    socket.emit("get_group_members" as any, { group_name: groupName });
+  }, [groupName]);
+
+  const resolveMemberAvatar = useCallback((username?: string, explicit?: number) => {
+    if (explicit !== undefined) return explicit;
+    if (!username) return 1;
+
+    const onlineMatch = onlineUsersRef.current.find((user) => user.username === username);
+    if (onlineMatch && onlineMatch.avatarId !== undefined) {
+      return onlineMatch.avatarId;
+    }
+
+    return 1;
+  }, []);
+
+  useEffect(() => {
+    if (isInitialized.current === false) {
+      socket.emit("getMe");
+      socket.emit("join_group", { group_name: groupName });
+      requestMembers();
+      socket.emit("online_users");
+  
+      isInitialized.current = true; // Mark as initialized
+    }
+
+    const handleMe = (data: { username: string | null; avatarId?: number }) => {
+      if (!data.username) {
+        router.push("/login");
+        return;
+      }
+      setCurrentUser(data.username);
+      setCurrentAvatarId(data.avatarId);
+
+      if (!hasRequestedHistory.current) {
+        socket.emit("group_history", { group_name: groupName });
+        hasRequestedHistory.current = true;
+      }
+    };
+
+    const handleGroupMembers = (data: GroupMembersEvent) => {
+      if (data.group_name !== groupName) return;
+      const normalizedMembers: GroupMember[] = data.members.map((member) => {
+        if (typeof member === "string") {
+          return {
+            name: member,
+            avatarId: resolveMemberAvatar(member),
+          };
+        }
+
+        const username = member.username ?? member.name ?? "Unknown";
+        return {
+          name: username,
+          avatarId: resolveMemberAvatar(username, member.avatarId),
+        };
+      });
+      setMembers(normalizedMembers);
+    };
+
+    const handleGroupHistory = (data: { history: any[] }) => {
+      const normalized = data.history.map(normalizeMessage);
+      setMessages(normalized);
+    };
+
+    const handleGroupMessage = (payload: any) => {
+      if ((payload.to && payload.to !== groupName) || payload.group_name !== undefined && payload.group_name !== groupName) {
+        return;
+      }
+      setMessages((prev) => [...prev, normalizeMessage(payload)]);
+    };
+
+    const handleServerMessage = (message: string) => {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `server-${Date.now()}-${Math.random()}`,
+          sender: "Server",
+          avatarId: 21,
+          timestamp: formatTimestamp(new Date().toISOString()),
+          isSelf: false,
+          type: "text",
+          text: message,
+        },
+      ]);
+
+      const normalized = message.toLowerCase();
+      if (
+        normalized.includes("has joined the group") ||
+        normalized.includes("has left the group") ||
+        normalized.includes("you joined group")
+      ) {
+        requestMembers();
+      }
+    };
+
+    const handleGroupMessageError = (data: { message: string }) => {
+      window.alert(data.message);
+    };
+
+    const handleOnlineUsers = (data: { users: OnlineUser[] }) => {
+      setOnlineUsers(data.users);
+    };
+
+    socket.on("me", handleMe);
+    socket.on("group_members" as any, handleGroupMembers);
+    socket.on("group_history", handleGroupHistory);
+    socket.on("group_message", handleGroupMessage);
+    socket.on("server_message", handleServerMessage);
+    socket.on("group_message_error" as any, handleGroupMessageError);
+    socket.on("online_users", handleOnlineUsers);
+
+    socket.emit("online_users");
+
+    return () => {
+      // socket.emit("leave_group", { group_name: groupName });
+      socket.off("me", handleMe);
+      socket.off("group_members" as any, handleGroupMembers);
+      socket.off("group_history", handleGroupHistory);
+      socket.off("group_message", handleGroupMessage);
+      socket.off("server_message", handleServerMessage);
+      socket.off("group_message_error" as any, handleGroupMessageError);
+      socket.off("online_users", handleOnlineUsers);
+      hasRequestedHistory.current = false;
+    };
+  }, [groupName, normalizeMessage, router, formatTimestamp, requestMembers, resolveMemberAvatar]);
+
+  const handleSendMessage = (content: string) => {
+    const trimmed = content.trim();
+    if (!trimmed) return;
+    const avatarId = currentAvatarId ?? 1;
+    const id = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `${Date.now()}`;
+
+    socket.emit("group_message", {
+      group_name: groupName,
+      id,
+      avatarId,
+      text: trimmed,
+    });
+  };
+
+  const handleLeaveGroup = () => {
+    socket.emit("leave_group", { group_name: groupName });
+    router.push("/");
+  };
 
   return (
     <GroupChatLayout
       groupName={groupName}
-      members={groupMembers}
-      messages={groupMessages}
+      members={members}
+      messages={messages}
+      onSendMessage={handleSendMessage}
+      onLeaveGroup={handleLeaveGroup}
     />
   );
 }

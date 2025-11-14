@@ -20,6 +20,7 @@ export const avatarMap: Record<number, string> = {
   18: "/avatars/18.jpg",
   19: "/avatars/19.jpg",
   20: "/avatars/20.jpg",
+  21: "/avatars/21.png",
 };
 
 export function getAvatar(id?: number): string {
