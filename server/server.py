@@ -68,31 +68,6 @@ async def register(sid,data):
     
 @sio.event
 async def login(sid,data):
-    # username = data.get('username')
-    # password = data.get('password')
-    # # VERIFY USER is not already online
-    # if not username:
-    #     await sio.emit('login_error' , {'message':'Username is required'}, to=sid)
-    #     return
-    
-    # if username in user_to_sid:
-    #     await sio.emit('login_error', {'message': 'Username already taken'}, to=sid)
-    #     return
-    
-    # is_valid = await asyncio.to_thread(db.check_credentials,users, username, password)
-
-    # # ------ Login Fail --------
-    # if not is_valid:
-    #     await sio.emit('login_error', {'message': 'Invalid username or password'}, to=sid)
-    #     return
-    
-    # # ------ Login Success --------
-    # # JUST for tracking 
-    # user_to_sid[username] = sid
-    # sid_to_user[sid] = username
-
-    # print(f'User {username} logged in with sid {sid}')
-    # await sio.emit('login_success', {'username': username}, to=sid)
     try:
         username = data.get('username')
         password = data.get('password')
