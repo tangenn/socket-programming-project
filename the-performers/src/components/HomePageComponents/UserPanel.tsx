@@ -10,23 +10,28 @@ type User = {
   avatarId?: number;
 };
 
+type OnlineUser = {
+  username: string;
+  avatarId?: number;
+};
+
 type UsersPanelProps = {
   currentUser: User;
 };
 
 export function UsersPanel({ currentUser }: UsersPanelProps) {
   const router = useRouter();
-  const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
+  const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([]);
 
   useEffect(() => {
     // Request online users when component mounts
     socket.emit("online_users");
 
     // Listen for online users updates
-    function handleOnlineUsers(data: { users: string[] }) {
+    function handleOnlineUsers(data: { users: Array<{ username: string; avatarId?: number }> }) {
       // Filter out the current user from the list
       const filteredUsers = data.users.filter(
-        (user) => user !== currentUser.name
+        (user) => user.username !== currentUser.name
       );
       setOnlineUsers(filteredUsers);
     }
@@ -128,9 +133,9 @@ export function UsersPanel({ currentUser }: UsersPanelProps) {
             No other users online
           </div>
         ) : (
-          onlineUsers.map((username) => (
+          onlineUsers.map((user) => (
             <div
-              key={username}
+              key={user.username}
               className="
                 hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[5px_5px_0px_#000]
                 active:translate-x-[2px] active:translate-y-[2px] active:shadow-[2px_2px_0px_#000]
@@ -145,8 +150,8 @@ export function UsersPanel({ currentUser }: UsersPanelProps) {
             >
               <div className="relative">
                 <img
-                  src="/fallback.png"
-                  alt={username}
+                  src={getAvatar(user.avatarId)}
+                  alt={user.username}
                   className="
                     w-10 h-10 
                     rounded-full 
@@ -159,12 +164,12 @@ export function UsersPanel({ currentUser }: UsersPanelProps) {
               </div>
 
               <span className="font-semibold flex-1 text-gray-800">
-                {username}
+                {user.username}
               </span>
 
               <button
                 onClick={() =>
-                  router.push(`/private/${encodeURIComponent(username)}`)
+                  router.push(`/private/${encodeURIComponent(user.username)}`)
                 }
                 className="
                   px-4 py-2

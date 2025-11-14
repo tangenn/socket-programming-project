@@ -13,18 +13,21 @@ export default function PrivateChatPage() {
   
   const [messages, setMessages] = useState<MessageType[]>([]);
   const [currentUser, setCurrentUser] = useState<string | null>(null);
+  const [currentUserAvatarId, setCurrentUserAvatarId] = useState<number | undefined>(undefined);
+  const [receiverAvatarId, setReceiverAvatarId] = useState<number | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     // Get current user
     socket.emit('getMe');
 
-    const onMe = (data: { username: string | null }) => {
+    const onMe = (data: { username: string | null; avatarId?: number }) => {
       if (!data.username) {
         router.push('/login');
         return;
       }
       setCurrentUser(data.username);
+      setCurrentUserAvatarId(data.avatarId);
       
       // Request DM history once we know who we are
       socket.emit('dm_history', { receiver: receiverUsername });
@@ -36,37 +39,49 @@ export default function PrivateChatPage() {
       console.log('Received DM history:', data.history);
       
       // Transform backend format to MessageType format
-      const transformedMessages: MessageType[] = data.history.map((msg: any, index: number) => ({
-        id: msg._id || String(index),
-        sender: msg.sender,
-        avatarId: msg.avatarId || 0,
-        timestamp: new Date(msg.timestamp).toLocaleTimeString('en-US', { 
-          hour: '2-digit', 
-          minute: '2-digit' 
-        }),
-        isSelf: msg.sender === currentUser,
-        type: "text",
-        text: msg.content || msg.text,
-      }));
+      const transformedMessages: MessageType[] = data.history.map((msg: any, index: number) => {
+        const isSelf = msg.sender === currentUser;
+        const avatarId = msg.avatarId || (isSelf ? currentUserAvatarId : receiverAvatarId);
+        
+        return {
+          id: msg._id || String(index),
+          sender: msg.sender,
+          avatarId: avatarId,
+          timestamp: new Date(msg.timestamp).toLocaleTimeString('en-US', { 
+            hour: '2-digit', 
+            minute: '2-digit' 
+          }),
+          isSelf: isSelf,
+          type: "text",
+          text: msg.content || msg.text,
+        };
+      });
       
       setMessages(transformedMessages);
     };
 
     // Listen for incoming DMs
-    const onDm = (data: { sender: string; receiver: string; content: string; timestamp: string }) => {
+    const onDm = (data: { sender: string; receiver: string; content: string; timestamp: string; avatarId?: number }) => {
       console.log('Received DM:', data);
       
       // Only add message if it's from/to the current chat partner
       if (data.sender === receiverUsername || data.receiver === receiverUsername) {
+        const isSelf = data.sender === currentUser;
+        
+        // Update receiver's avatar if we receive it
+        if (!isSelf && data.avatarId !== undefined) {
+          setReceiverAvatarId(data.avatarId);
+        }
+        
         const newMessage: MessageType = {
           id: Date.now().toString(),
           sender: data.sender,
-          avatarId: 0,
+          avatarId: data.avatarId || (isSelf ? currentUserAvatarId : receiverAvatarId),
           timestamp: new Date(data.timestamp).toLocaleTimeString('en-US', { 
             hour: '2-digit', 
             minute: '2-digit' 
           }),
-          isSelf: data.sender === currentUser,
+          isSelf: isSelf,
           type: "text",
           text: data.content,
         };
@@ -121,7 +136,7 @@ export default function PrivateChatPage() {
 
   return (
     <PrivateChatLayout 
-      user={{ name: receiverUsername, avatarId: 0 }} 
+      user={{ name: receiverUsername, avatarId: receiverAvatarId }} 
       messages={messages}
       onSendMessage={handleSendMessage}
     />

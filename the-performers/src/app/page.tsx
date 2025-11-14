@@ -68,6 +68,7 @@ export const otherGroups: Group[] = [
 
 export default function HomePage() {
   const [username, setUsername] = useState<string | null>(null);
+  const [avatarId, setAvatarId] = useState<number | undefined>(undefined);
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
@@ -77,9 +78,10 @@ export default function HomePage() {
     socket.emit('getMe');
 
     // Listen for 'me' event from server
-    function onMe(data: { username: string | null }) {
+    function onMe(data: { username: string | null; avatarId?: number }) {
       if (data.username) {
         setUsername(data.username);
+        setAvatarId(data.avatarId);
       }
     }
 
@@ -87,14 +89,23 @@ export default function HomePage() {
     function onLoginSuccess(data: { username: string }) {
       setUsername(data.username);
       setAuth(data.username);
+      // Request user data again to get avatar
+      socket.emit('getMe');
+    }
+
+    // Listen for avatar updates
+    function onAvatarSelected(data: { avatarId: number }) {
+      setAvatarId(data.avatarId);
     }
 
     socket.on('me', onMe);
     socket.on("login_success", onLoginSuccess);
+    socket.on("avatar_selected", onAvatarSelected);
 
     return () => {
       socket.off('me', onMe);
       socket.off("login_success", onLoginSuccess);
+      socket.off("avatar_selected", onAvatarSelected);
     };
   }, []);
 
@@ -123,7 +134,7 @@ export default function HomePage() {
     );
   }
 
-  const mockUser = { name: username };
+  const mockUser = { name: username, avatarId: avatarId };
 
   return (
     <div className="relative min-h-screen">
