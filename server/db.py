@@ -189,6 +189,16 @@ def remove_member_from_group(groups, group_name, username):
     except Exception as e:
         print("remove_member_from_group error:", e)
 
+def get_group_members(groups, group_name):
+    try:
+        doc = groups.find_one({"group_name": group_name}, {"_id": 0, "members": 1})
+        if doc and "members" in doc:
+            return doc["members"]
+        return []
+    except Exception as e:
+        print("get_group_members error:", e)
+        return []
+
 def get_all_groups(groups):
     try:
         return list(groups.find({}, {"_id": 0, "group_name": 1}))
