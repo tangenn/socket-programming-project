@@ -124,6 +124,10 @@ async def dm(sid ,data):
     if not sender or not receiver or not content:
         await sio.emit('dm_error', {'message': 'Invalid DM data'}, to=sid)
         return
+    
+    # Get sender's avatar
+    sender_avatar = await asyncio.to_thread(db.get_user_avatar, users, sender)
+
     await asyncio.to_thread(db.save_dm_message,dm_messages ,sender, receiver, content, timestamp)
 
     receiver_sid = user_to_sid.get(receiver)
@@ -131,7 +135,8 @@ async def dm(sid ,data):
         'sender': sender,
         'receiver': receiver,
         'content': content,
-        'timestamp': timestamp.isoformat()
+        'timestamp': timestamp.isoformat(),
+        'avatarId': sender_avatar  # Add avatar to DM
     }
 
     # receiver online
@@ -283,8 +288,15 @@ async def group_history(sid, data):
 @sio.event
 async def online_users(sid):
     online_users_list = list(user_to_sid.keys())
-    await sio.emit('online_users', {'users': online_users_list}, to=sid)
-
+    
+    # Get avatar information for all online users
+    users_with_avatars = await asyncio.to_thread(
+        db.get_users_with_avatars, 
+        users, 
+        online_users_list
+    )
+    
+    await sio.emit('online_users', {'users': users_with_avatars}, to=sid)
 
 @sio.event
 async def get_available_groups(sid):
@@ -292,9 +304,15 @@ async def get_available_groups(sid):
     await sio.emit('available_groups', {'groups': group_list}, to=sid)
 
 @sio.event
-async def getMe(sid) :
+async def getMe(sid):
     username = sid_to_user.get(sid)
-    await sio.emit('me', {'username': username}, to=sid)
+    avatarId = None
+    
+    if username:
+        # Get the user's avatar from database
+        avatarId = await asyncio.to_thread(db.get_user_avatar, users, username)
+    
+    await sio.emit('me', {'username': username, 'avatarId': avatarId}, to=sid)
 
 # ---- mini game rock paper scissor ------
 # JUST 1 VS 1 version multiplayer not yet implement

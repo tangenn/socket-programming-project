@@ -203,3 +203,28 @@ def debug_list_collections(groups, db):
     except Exception as e:
         print("debug_list_collections error:", e)
 
+def get_user_avatar(users, username):
+    """Get the avatar_id for a specific user."""
+    try:
+        user = users.find_one({"username": username}, {"_id": 0, "avatar_id": 1})
+        if user and "avatar_id" in user:
+            return user["avatar_id"]
+        return None
+    except Exception as e:
+        print("get_user_avatar error:", e)
+        return None
+    
+
+def get_users_with_avatars(users, usernames):
+    """Get avatar_ids for a list of usernames."""
+    try:
+        user_list = []
+        for username in usernames:
+            user = users.find_one({"username": username}, {"_id": 0, "avatar_id": 1})
+            avatarId = user.get("avatar_id") if user else None
+            user_list.append({"username": username, "avatarId": avatarId})
+        return user_list
+    except Exception as e:
+        print("get_users_with_avatars error:", e)
+        return [{"username": username, "avatarId": None} for username in usernames]
+
