@@ -51,8 +51,11 @@ export function ChatMessages({
     });
   }, [messages]);
 
-  const handleChoice = (choice: string, challengerId?: string, messageId?: string) => {
-    if (!challengerId || !onAcceptChallenge || !messageId) return;
+  const handleChoice = (choice: string, challengerId?: string, messageId?: string, challengerUsername?: string) => {
+    // Use username if challengerId (socket ID) is missing (from history)
+    const effectiveChallengerId = challengerId || challengerUsername;
+    
+    if (!effectiveChallengerId || !onAcceptChallenge || !messageId) return;
     
     // Prevent double-clicking
     if (acceptedChallenges.has(messageId)) return;
@@ -65,10 +68,9 @@ export function ChatMessages({
     };
     
     const selectedRPS = rpsMap[choice] || choice.toLowerCase();
-    onAcceptChallenge(challengerId, selectedRPS);
+    onAcceptChallenge(effectiveChallengerId, selectedRPS);
     setAcceptedChallenges((prev) => new Set(prev).add(messageId));
   };
-
   return (
     <div
       ref={scrollRef}
@@ -112,7 +114,7 @@ export function ChatMessages({
                     {["✊🏿 ROCK", "🖐🏿 PAPER", "✌🏿 SCISSOR"].map((choice) => (
                       <button
                         key={choice}
-                        onClick={() => handleChoice(choice, (m as any).challenger_sid, m.id)}
+                        onClick={() => handleChoice(choice, (m as any).challenger_sid, m.id, m.sender)}
                         className="comic-choice-btn text-10xl comic-text-strong"
                       >
                         {choice}
@@ -139,7 +141,7 @@ export function ChatMessages({
             isGroup && m.participants?.length === 2
               ? `${m.participants[0]} accepted ${m.participants[1]}'s challenge!`
               : m.isSelf
-              ? `You accepted ${m.opponent}'s challenge!`
+              ? `You accepted ${m.participants?.[1] || m.opponent || 'their'}'s challenge!`
               : `${m.sender} accepted your challenge!`;
 
           return (

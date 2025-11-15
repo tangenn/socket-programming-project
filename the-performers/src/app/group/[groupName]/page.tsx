@@ -79,7 +79,7 @@ export default function GroupPage() {
         timestamp: formatTimestamp(payload.timestamp),
         isSelf: sender === currentUserRef.current,
         type: messageType,
-        text: payload.text ?? payload.content ?? "",
+        text: payload.text ?? "",
         opponent: payload.opponent,
         participants: payload.participants,
         challenger_sid: payload.challenger_sid,

@@ -11,7 +11,7 @@ interface ServerToClientEvents {
   avatar_selected: (data: { avatarId: number }) => void;
   create_group_success: (data: { message: string; group_name: string }) => void;
   create_group_error: (data: { message: string }) => void;
-  dm: (data: { sender: string; receiver: string; content: string; timestamp: string; avatarId?: number }) => void;
+  dm: (data: { sender: string; receiver: string; text: string; timestamp: string; avatarId?: number }) => void;
   dm_history: (data: { history: any[] }) => void;
   dm_error: (data: { message: string }) => void;
   server_message: (message: string) => void;
@@ -32,7 +32,7 @@ interface ClientToServerEvents {
   register: (data: { username: string; password: string; avatarId?: number }) => void;
   login: (data: { username: string; password: string }) => void;
   select_avatar: (data: { avatarId: number }) => void;
-  dm: (data: { receiver: string; content: string }) => void;
+  dm: (data: { receiver: string; text: string }) => void;
   dm_history: (data: { receiver: string }) => void;
   join_group: (data: { group_name: string }) => void;
   leave_group: (data: { group_name: string }) => void;

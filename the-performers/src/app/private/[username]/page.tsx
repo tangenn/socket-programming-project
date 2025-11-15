@@ -42,6 +42,11 @@ export default function PrivateChatPage() {
     const rawType = payload.type;
     const supportedTypes: MessageType["type"][] = ["text", "challenge", "challenge_accepted", "challenge_result"];
     const messageType = supportedTypes.includes(rawType) ? rawType : "text";
+    
+    // Debug: log if we're getting challenge_accepted without proper type
+    if (payload.text?.includes("accepted") && payload.text?.includes("challenge") && messageType === "text") {
+      console.warn("Challenge accepted message missing type field:", payload);
+    }
 
     const isSelf = sender === currentUserRef.current;
 
@@ -52,7 +57,7 @@ export default function PrivateChatPage() {
       timestamp: formatTimestamp(payload.timestamp),
       isSelf,
       type: messageType,
-      text: payload.text ?? payload.content ?? "",
+      text: payload.text ?? "",
       opponent: payload.opponent,
       participants: payload.participants,
       challenger_sid: payload.challenger_sid,
@@ -97,8 +102,11 @@ export default function PrivateChatPage() {
         const newMessage = normalizeMessage(data);
         setMessages(prev => [...prev, newMessage]);
         
-        // Update receiver's avatar if we receive it
-        if (!newMessage.isSelf && data.avatarId !== undefined) {
+        // Update receiver's avatar if we receive it, but NOT for challenge-related messages
+        const isChallengeMessage = data.type === "challenge" || 
+                                   data.type === "challenge_accepted" || 
+                                   data.type === "challenge_result";
+        if (!newMessage.isSelf && data.avatarId !== undefined && !isChallengeMessage) {
           setReceiverAvatarId(data.avatarId);
         }
       }
@@ -156,9 +164,9 @@ export default function PrivateChatPage() {
     
     socket.emit('dm', {
       receiver: receiverUsername,
-      content: content.trim(),
+      text: content.trim(),
     });
-  };
+  };;
 
   const handleSendChallenge = useCallback((selectedRPS: string) => {
     if (!currentUser || !currentUserAvatarId) return;
