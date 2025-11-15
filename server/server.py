@@ -308,7 +308,7 @@ async def group_message(sid,data):
     
     # --- BYPASS ---
     # Comment out the database call
-    await asyncio.to_thread(db.save_group_message, group_messages, group_name, id ,sender, avatarId, timestamp, type, text)
+    # await asyncio.to_thread(db.save_group_message, group_messages, group_name, id ,sender, avatarId, timestamp, type, text)
     # print("BYPASS: Skipped saving message to DB")
     # --- END BYPASS ---
 
@@ -334,19 +334,8 @@ async def group_history(sid, data):
     serializable_history = []
     for msg in history:
         serializable_msg = msg.copy()
-
-        ts = serializable_msg.get('timestamp')
-
-        if isinstance(ts, datetime):
-            # If timestamp is naive, assume it's UTC
-            if ts.tzinfo is None:
-                ts = ts.replace(tzinfo=timezone.utc)
-
-            # Convert to Bangkok local time
-            ts = ts.astimezone(ZoneInfo("Asia/Bangkok"))
-
-            serializable_msg['timestamp'] = ts.isoformat()
-
+        if 'timestamp' in serializable_msg and isinstance(serializable_msg['timestamp'], datetime):
+            serializable_msg['timestamp'] = serializable_msg['timestamp'].isoformat()
         serializable_history.append(serializable_msg)
 
     await sio.emit('group_history', {'history': serializable_history}, to=sid)\
@@ -457,7 +446,7 @@ async def group_challengeV2(sid,data):
         "text": text
     }
 
-    await asyncio.to_thread(db.save_group_message, group_messages, group_name, id ,challenger_name, avatarId, timestamp, type, text)
+    # await asyncio.to_thread(db.save_group_message, group_messages, group_name, id ,challenger_name, avatarId, timestamp, type, text)
 
     await sio.emit('challenge_message',{'message': message_payload}, to=group_name)
 
@@ -535,7 +524,7 @@ async def group_challenge_responseV2(sid,data):
         "text": f"{opponent_name} accepted {challenger_name}'s challenge!",
         "participants": [opponent_name, challenger_name]
     }
-    await asyncio.to_thread(db.save_group_message, group_messages, group_name, f"{id}-accepted", opponent_name, avatarId, timestamp, "challenge_accepted", accepted_payload["text"])
+    # await asyncio.to_thread(db.save_group_message, group_messages, group_name, f"{id}-accepted", opponent_name, avatarId, timestamp, "challenge_accepted", accepted_payload["text"])
     await sio.emit('challenge_message', {'message': accepted_payload}, to=group_name)
 
     # Send result message
@@ -548,7 +537,7 @@ async def group_challenge_responseV2(sid,data):
         "text": text,
         "participants": participants
     }
-    await asyncio.to_thread(db.save_group_message, group_messages, group_name, f"{id}-result", "System", 21, timestamp, "challenge_result", text)
+    # await asyncio.to_thread(db.save_group_message, group_messages, group_name, f"{id}-result", "System", 21, timestamp, "challenge_result", text)
     await sio.emit('challenge_message', {'message': result_payload}, to=group_name)
 
     # Clean up
@@ -644,7 +633,7 @@ async def private_challengeV2(sid, data):
     }
 
     # Save with avatarId
-    await asyncio.to_thread(db.save_dm_message, dm_messages, challenger_name, receiver, text, timestamp, type, id, avatarId)
+    # await asyncio.to_thread(db.save_dm_message, dm_messages, challenger_name, receiver, text, timestamp, type, id, avatarId)
 
     receiver_sid = user_to_sid.get(receiver)
     if receiver_sid:
@@ -746,13 +735,12 @@ async def private_challenge_responseV2(sid, data):
         "participants": [opponent_name, challenger_name]
     }
     # Save with avatarId
-    await asyncio.to_thread(db.save_dm_message, dm_messages, opponent_name, receiver, accepted_payload["text"], timestamp, "challenge_accepted", f"{id}-accepted", avatarId)
+    # await asyncio.to_thread(db.save_dm_message, dm_messages, opponent_name, receiver, accepted_payload["text"], timestamp, "challenge_accepted", f"{id}-accepted", avatarId)
     
     challenger_sid = user_to_sid.get(challenger_name)
     if challenger_sid:
         await sio.emit('dm', accepted_payload, to=challenger_sid)
     await sio.emit('dm', accepted_payload, to=sid)
-
     # Send result message
     result_payload = {
         "id": f"{id}-result",
@@ -765,7 +753,7 @@ async def private_challenge_responseV2(sid, data):
         "participants": participants
     }
     # Save with avatarId
-    await asyncio.to_thread(db.save_dm_message, dm_messages, "System", receiver, text, timestamp, "challenge_result", f"{id}-result", 21)
+    # await asyncio.to_thread(db.save_dm_message, dm_messages, "System", receiver, text, timestamp, "challenge_result", f"{id}-result", 21)
     
     if challenger_sid:
         await sio.emit('dm', result_payload, to=challenger_sid)
