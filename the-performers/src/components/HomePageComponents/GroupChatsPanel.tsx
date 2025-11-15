@@ -141,6 +141,7 @@ export function GroupChatsPanel() {
               ${openGroup === g.name ? "rotate-180" : ""}
             `}
           >
+            ▼
           </span>
         </div>
       </div>

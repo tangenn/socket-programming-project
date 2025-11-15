@@ -79,7 +79,9 @@ export function ChatMessages({
         ${shrink ? "h-[50vh]" : "h-[60vh]"}
       `}
     >
-      {messages.map((m) => {
+      {messages.map((m, index) => {
+        const keyBase = m.id || `${m.sender}-${m.timestamp}`;
+        const messageKey = `${keyBase}-${index}`;
         /* ================================
            🔥  CHALLENGE BANNER
         ================================= */
@@ -95,7 +97,7 @@ export function ChatMessages({
           const isAccepted = acceptedChallenges.has(m.id);
 
           return (
-            <div key={m.id} className="flex justify-center w-full">
+            <div key={messageKey} className="flex justify-center w-full">
               <div
                 className="comic-card max-w-2xl w-full text-center p-6 bg-white-100/70"
               >
@@ -141,7 +143,7 @@ export function ChatMessages({
               : `${m.sender} accepted your challenge!`;
 
           return (
-            <div key={m.id} className="flex justify-center w-full">
+            <div key={messageKey} className="flex justify-center w-full">
               <div
                 className="comic-card bg-blue-100/80 max-w-2xl w-full text-center p-6"
               >
@@ -178,7 +180,7 @@ export function ChatMessages({
             : "bg-white";
 
           return (
-            <div key={m.id} className="flex justify-center w-full">
+            <div key={messageKey} className="flex justify-center w-full">
               <div className={`comic-card ${color} max-w-2xl w-full text-center p-6`}>
                 <div className="comic-banner-title mb-3">
                   {isDraw ? "😮 It's a Draw!" : "🔥 Battle Result!"}
@@ -194,7 +196,7 @@ export function ChatMessages({
         ================================= */
         if (m.type === "text" && !m.isSelf) {
           return (
-            <div key={m.id} className="flex items-start gap-3">
+            <div key={messageKey} className="flex items-start gap-3">
               <img
                 src={getAvatar(m.avatarId ?? 1)}
                 alt={m.sender}
@@ -224,7 +226,7 @@ export function ChatMessages({
         ================================= */
         if (m.type === "text" && m.isSelf) {
           return (
-            <div key={m.id} className="flex justify-end items-start">
+            <div key={messageKey} className="flex justify-end items-start">
               <div className="flex flex-col max-w-[70%] items-end">
                 <div className="flex gap-2 items-end">
                   <span className="text-xs text-gray-600">{m.timestamp}</span>
