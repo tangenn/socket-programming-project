@@ -119,10 +119,10 @@ async def select_avatar(sid,data):
 async def dm(sid ,data):
     sender = sid_to_user.get(sid)
     receiver = data.get('receiver')
-    content = data.get('content')
+    text = data.get('text') or data.get('content')  # Support both for backward compatibility
     timestamp = datetime.now(timezone.utc)
     
-    if not sender or not receiver or not content:
+    if not sender or not receiver or not text:
         await sio.emit('dm_error', {'message': 'Invalid DM data'}, to=sid)
         return
     
@@ -135,13 +135,13 @@ async def dm(sid ,data):
     
     # Only save to DB if it's a new message (not already saved)
     if msg_id is None:
-        await asyncio.to_thread(db.save_dm_message, dm_messages, sender, receiver, content, timestamp, msg_type, None, sender_avatar)
+        await asyncio.to_thread(db.save_dm_message, dm_messages, sender, receiver, text, timestamp, msg_type, None, sender_avatar)
 
     receiver_sid = user_to_sid.get(receiver)
     message_payload = {
         'sender': sender,
         'receiver': receiver,
-        'content': content,
+        'text': text,
         'timestamp': timestamp.isoformat(),
         'avatarId': sender_avatar,
         'type': msg_type
@@ -447,11 +447,17 @@ async def group_challenge_responseV2(sid,data):
     avatarId = data.get('avatarId')
     selectedRPS = data.get('selectedRPS')
     opponent_name = sid_to_user.get(sid)
-    challenger_name = sid_to_user.get(challenger_id)
     group_name = data.get('group_name')
     timestamp = datetime.now(timezone.utc).isoformat()
-    game = active_games.get(challenger_id)
-
+    if challenger_id and challenger_id not in sid_to_user:
+        # It's a username, use it directly and look up the socket ID
+        challenger_name = challenger_id
+        challenger_id = user_to_sid.get(challenger_id)
+    else:
+        # It's a socket ID, get the username
+        challenger_name = sid_to_user.get(challenger_id) if challenger_id else None
+    
+    game = active_games.get(challenger_id) if challenger_id else None
     if not game:
         print(f"Game {challenger_id} not found (expired or challenger left).")
         return
@@ -677,7 +683,6 @@ async def private_challengeV2(sid, data):
         "avatarId": avatarId,
         "timestamp": timestamp.isoformat(),
         "type": type,
-        "content": text,
         "text": text
     }
 
@@ -713,14 +718,21 @@ async def expire_private_challenge(challenger_sid, message_id):
 @sio.event
 async def private_challenge_responseV2(sid, data):
     challenger_id = data.get('challenger_id')
+    if challenger_id and challenger_id not in sid_to_user:
+        # It's a username, use it directly and look up the socket ID
+        challenger_name = challenger_id
+        challenger_id = user_to_sid.get(challenger_id)
+    else:
+        # It's a socket ID, get the username
+        challenger_name = sid_to_user.get(challenger_id) if challenger_id else None
+    
     id = data.get('id')
     avatarId = data.get('avatarId')
     selectedRPS = data.get('selectedRPS')
     opponent_name = sid_to_user.get(sid)
-    challenger_name = sid_to_user.get(challenger_id)
     receiver = data.get('receiver')  # The person who sent the challenge
     timestamp = datetime.now(timezone.utc)
-    game = active_games.get(challenger_id)
+    game = active_games.get(challenger_id) if challenger_id else None
 
     if not game:
         print(f"Game {challenger_id} not found (expired or challenger left).")
@@ -736,7 +748,6 @@ async def private_challenge_responseV2(sid, data):
             "avatarId": 21,
             "timestamp": timestamp.isoformat(),
             "type": "text",
-            "content": f"Challenge from {challenger_name} has already been accepted.",
             "text": f"Challenge from {challenger_name} has already been accepted."
         }
         await sio.emit('dm', error_payload, to=sid)
@@ -774,12 +785,11 @@ async def private_challenge_responseV2(sid, data):
         "avatarId": avatarId,
         "timestamp": timestamp.isoformat(),
         "type": "challenge_accepted",
-        "content": f"{opponent_name} accepted {challenger_name}'s challenge!",
         "text": f"{opponent_name} accepted {challenger_name}'s challenge!",
         "participants": [opponent_name, challenger_name]
     }
     # Save with avatarId
-    await asyncio.to_thread(db.save_dm_message, dm_messages, opponent_name, receiver, accepted_payload["content"], timestamp, "challenge_accepted", f"{id}-accepted", avatarId)
+    await asyncio.to_thread(db.save_dm_message, dm_messages, opponent_name, receiver, accepted_payload["text"], timestamp, "challenge_accepted", f"{id}-accepted", avatarId)
     
     challenger_sid = user_to_sid.get(challenger_name)
     if challenger_sid:
@@ -794,7 +804,6 @@ async def private_challenge_responseV2(sid, data):
         "avatarId": 21,
         "timestamp": timestamp.isoformat(),
         "type": "challenge_result",
-        "content": text,
         "text": text,
         "participants": participants
     }

@@ -27,7 +27,7 @@ def connect_db() :
         users = db["users"]
         # {username(unique), password(plain text)}
         dm_messages = db["dm_messages"]
-        # {sender, receiver, content, timestamp}
+        # {sender, receiver, text, timestamp}
         group_messages = db["group_messages"]
         # {sender, group_name, content, timestamp}
         groups = db["groups"]
@@ -82,13 +82,13 @@ def check_credentials(users,username,password):
         # This check is also CPU-intensive
         return password == verify_password
 
-def save_dm_message(dm_messages, sender, receiver, content, timestamp, type="text", id=None, avatarId=None):
+def save_dm_message(dm_messages, sender, receiver, text, timestamp, type="text", id=None, avatarId=None):
     """Persist a message document for DM."""
     try:
         doc = {
             "sender": sender,
             "receiver": receiver,
-            "content": content,
+            "text": text,
             "timestamp": timestamp,
             "type": type,  # "text" | "challenge" | "challenge_accepted" | "challenge_result"
         }
@@ -113,9 +113,9 @@ def get_dm_messages(dm_messages, sender, receiver):
             '_id': 0,
             'sender': 1,
             'receiver': 1,
-            'content': 1,
+            'text': 1,
             'timestamp': 1,
-            'type': 1,  # Include type
+            'type': 1,  # Include type - this should already be there
             'id': 1,    # Include id
             'avatarId': 1  # Include avatarId
             }).sort("timestamp", 1)  # Sort by timestamp ascending
@@ -123,7 +123,6 @@ def get_dm_messages(dm_messages, sender, receiver):
     except Exception as e:
         print("Failed to retrieve messages from DB:", e)
         return []
-
 
 def save_group_message(group_messages, group_name, id ,sender, avatarId, timestamp, type, text):
     """Persist a message document for group."""
