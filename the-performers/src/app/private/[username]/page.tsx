@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { socket } from "@/socket";
 import { PrivateChatLayout } from "@/components/ChatComponents/PrivateChatLayout";
@@ -17,10 +17,50 @@ export default function PrivateChatPage() {
   const [receiverAvatarId, setReceiverAvatarId] = useState<number | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(true);
 
+  const currentUserRef = useRef<string | null>(null);
+  const receiverAvatarRef = useRef<number | undefined>(undefined);
+
   useEffect(() => {
-    // Get current user
+    currentUserRef.current = currentUser;
+  }, [currentUser]);
+
+  useEffect(() => {
+    receiverAvatarRef.current = receiverAvatarId;
+  }, [receiverAvatarId]);
+
+  const formatTimestamp = useCallback((value?: string) => {
+    if (!value) return new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+    }
+    return date.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+  }, []);
+
+  const normalizeMessage = useCallback((payload: any): MessageType => {
+    const sender = payload.sender ?? payload.from ?? "Server";
+    const rawType = payload.type;
+    const supportedTypes: MessageType["type"][] = ["text", "challenge", "challenge_accepted", "challenge_result"];
+    const messageType = supportedTypes.includes(rawType) ? rawType : "text";
+
+    const isSelf = sender === currentUserRef.current;
+
+    return {
+      id: payload.id || payload._id || `${sender}-${Date.now()}`,
+      sender,
+      avatarId: payload.avatarId ?? payload.sender_avatar ?? (isSelf ? currentUserAvatarId : receiverAvatarRef.current),
+      timestamp: formatTimestamp(payload.timestamp),
+      isSelf,
+      type: messageType,
+      text: payload.text ?? payload.content ?? "",
+      opponent: payload.opponent,
+      participants: payload.participants,
+      challenger_sid: payload.challenger_sid,
+    };
+  }, [formatTimestamp, currentUserAvatarId]);
+
+  useEffect(() => {
     socket.emit('getMe');
-    // Get online users to fetch receiver's avatar
     socket.emit('online_users');
 
     const onMe = (data: { username: string | null; avatarId?: number }) => {
@@ -30,13 +70,10 @@ export default function PrivateChatPage() {
       }
       setCurrentUser(data.username);
       setCurrentUserAvatarId(data.avatarId);
-      
-      // Request DM history once we know who we are
       socket.emit('dm_history', { receiver: receiverUsername });
       setIsLoading(false);
     };
 
-    // Listen for online users to get receiver's avatar
     const onOnlineUsers = (data: { users: Array<{ username: string; avatarId?: number }> }) => {
       const receiver = data.users.find(u => u.username === receiverUsername);
       if (receiver && receiver.avatarId !== undefined) {
@@ -44,86 +81,53 @@ export default function PrivateChatPage() {
       }
     };
 
-    // Listen for DM history
     const onDmHistory = (data: { history: any[] }) => {
-      console.log('Received DM history:', data.history);
-      
-      // Transform backend format to MessageType format
-      const transformedMessages: MessageType[] = data.history.map((msg: any, index: number) => {
-        const isSelf = msg.sender === currentUser;
-        
-        // Server sends 'sender_avatar' field for each message
-        // Use sender_avatar if available, otherwise fall back to current user's avatar
-        let avatarId: number | undefined;
-        if (msg.sender_avatar !== undefined) {
-          avatarId = msg.sender_avatar;
-        } else if (isSelf && currentUserAvatarId !== undefined) {
-          avatarId = currentUserAvatarId;
-        } else if (!isSelf && receiverAvatarId !== undefined) {
-          avatarId = receiverAvatarId;
-        }
-        
-        // Update receiver's avatar if we see a message from them
-        if (!isSelf && msg.sender_avatar !== undefined && receiverAvatarId === undefined) {
-          setReceiverAvatarId(msg.sender_avatar);
-        }
-        
-        return {
-          id: msg._id || String(index),
-          sender: msg.sender,
-          avatarId: avatarId,
-          timestamp: new Date(msg.timestamp).toLocaleTimeString('en-US', { 
-            hour: '2-digit', 
-            minute: '2-digit' 
-          }),
-          isSelf: isSelf,
-          type: "text",
-          text: msg.content || msg.text,
-        };
+      const transformedMessages: MessageType[] = data.history.map((msg: any) => {
+        return normalizeMessage({
+          ...msg,
+          sender_avatar: msg.sender_avatar,
+          avatarId: msg.sender_avatar,
+        });
       });
-      
       setMessages(transformedMessages);
     };
 
-    // Listen for incoming DMs
-    const onDm = (data: { sender: string; receiver: string; content: string; timestamp: string; avatarId?: number }) => {
-      console.log('Received DM:', data);
-      
-      // Only add message if it's from/to the current chat partner
+    const onDm = (data: any) => {
       if (data.sender === receiverUsername || data.receiver === receiverUsername) {
-        const isSelf = data.sender === currentUser;
+        const newMessage = normalizeMessage(data);
+        setMessages(prev => [...prev, newMessage]);
         
         // Update receiver's avatar if we receive it
-        if (!isSelf && data.avatarId !== undefined) {
+        if (!newMessage.isSelf && data.avatarId !== undefined) {
           setReceiverAvatarId(data.avatarId);
         }
-        
-        const newMessage: MessageType = {
-          id: Date.now().toString(),
-          sender: data.sender,
-          avatarId: data.avatarId || (isSelf ? currentUserAvatarId : receiverAvatarId),
-          timestamp: new Date(data.timestamp).toLocaleTimeString('en-US', { 
-            hour: '2-digit', 
-            minute: '2-digit' 
-          }),
-          isSelf: isSelf,
-          type: "text",
-          text: data.content,
-        };
-        
-        setMessages(prev => [...prev, newMessage]);
       }
     };
 
-    // Listen for server messages (e.g., "User is offline")
     const onServerMessage = (message: string) => {
       console.log('Server message:', message);
-      // Optionally display as a system message in chat
     };
 
     const onDmError = (data: { message: string }) => {
       console.error('DM Error:', data.message);
       alert(data.message);
+    };
+
+    const handleChallengeMessage = (payload: any) => {
+      // Handle challenge messages sent via dm event
+      if (payload.message) {
+        onDm(payload.message);
+      }
+    };
+
+    const handleChallengeExpired = (data: { id: string }) => {
+      setMessages((prev) => 
+        prev.map((msg) => 
+          msg.id === data.id 
+            ? { ...msg, type: "text", text: "Challenge expired" } 
+            : msg
+        )
+      );
     };
 
     socket.on('me', onMe);
@@ -132,6 +136,8 @@ export default function PrivateChatPage() {
     socket.on('dm', onDm);
     socket.on('server_message', onServerMessage);
     socket.on('dm_error', onDmError);
+    socket.on('challenge_message', handleChallengeMessage);
+    socket.on('challenge_expired', handleChallengeExpired);
 
     return () => {
       socket.off('me', onMe);
@@ -140,18 +146,50 @@ export default function PrivateChatPage() {
       socket.off('dm', onDm);
       socket.off('server_message', onServerMessage);
       socket.off('dm_error', onDmError);
+      socket.off('challenge_message', handleChallengeMessage);
+      socket.off('challenge_expired', handleChallengeExpired);
     };
-  }, [receiverUsername, currentUser, router]);
+  }, [receiverUsername, router, normalizeMessage, formatTimestamp]);
 
   const handleSendMessage = (content: string) => {
     if (!content.trim()) return;
     
-    console.log('Sending DM:', { receiver: receiverUsername, content });
     socket.emit('dm', {
       receiver: receiverUsername,
       content: content.trim(),
     });
   };
+
+  const handleSendChallenge = useCallback((selectedRPS: string) => {
+    if (!currentUser || !currentUserAvatarId) return;
+    
+    const id = typeof crypto !== "undefined" && "randomUUID" in crypto 
+      ? crypto.randomUUID() 
+      : `${Date.now()}`;
+    
+    socket.emit("private_challengeV2" as any, {
+      receiver: receiverUsername,
+      id,
+      avatarId: currentUserAvatarId,
+      selectedRPS: selectedRPS.toLowerCase(),
+    });
+  }, [receiverUsername, currentUser, currentUserAvatarId]);
+
+  const handleAcceptChallenge = useCallback((challengerId: string, selectedRPS: string) => {
+    if (!currentUser || !currentUserAvatarId) return;
+    
+    const id = typeof crypto !== "undefined" && "randomUUID" in crypto 
+      ? crypto.randomUUID() 
+      : `${Date.now()}`;
+    
+    socket.emit("private_challenge_responseV2" as any, {
+      challenger_id: challengerId,
+      id,
+      avatarId: currentUserAvatarId,
+      selectedRPS: selectedRPS.toLowerCase(),
+      receiver: receiverUsername,
+    });
+  }, [receiverUsername, currentUser, currentUserAvatarId]);
 
   if (isLoading) {
     return (
@@ -166,6 +204,8 @@ export default function PrivateChatPage() {
       user={{ name: receiverUsername, avatarId: receiverAvatarId }} 
       messages={messages}
       onSendMessage={handleSendMessage}
+      onSendChallenge={handleSendChallenge}
+      onAcceptChallenge={handleAcceptChallenge}
     />
   );
 }

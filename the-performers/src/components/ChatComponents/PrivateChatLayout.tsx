@@ -9,22 +9,23 @@ type PrivateChatProps = {
   user: { name: string; avatarId?: number };
   messages: MessageType[];
   onSendMessage?: (content: string) => void;
+  onSendChallenge?: (selectedRPS: string) => void;
+  onAcceptChallenge?: (challengerId: string, selectedRPS: string) => void;
 };
 
 export function PrivateChatLayout({
   user,
   messages,
   onSendMessage,
+  onSendChallenge,
+  onAcceptChallenge,
 }: PrivateChatProps) {
   const [showRPS, setShowRPS] = React.useState(false);
 
   return (
-
     <div className="min-h-screen relative flex justify-center items-start p-10">
-      {/* --- Background Comic Wallpaper --- */}
       <div className="absolute inset-0 bg-[url('/backgrounds/background_Noir.jpg')] bg-cover bg-center bg-fixed opacity-90" />
 
-      {/* --- Main Comic Panel --- */}
       <div
         className="
           relative w-full max-w-6xl
@@ -37,7 +38,6 @@ export function PrivateChatLayout({
           mt-10 
         "
       >
-        {/* Header (Avatar + Name) */}
         <div className="w-full flex items-center gap-4 mb-6">
           <img
             className="w-18 h-18 rounded-full border-5 border-black"
@@ -53,12 +53,16 @@ export function PrivateChatLayout({
           </h1>
         </div>
 
-        {/* Chat Section */}
         <div className="flex flex-col w-full">
-          <ChatMessages messages={messages} isGroup={false} shrink={showRPS} />
+          <ChatMessages 
+            messages={messages} 
+            isGroup={false} 
+            shrink={showRPS}
+            onAcceptChallenge={onAcceptChallenge}
+          />
 
           <div className="mt-4">
-            <RPSSelector open={showRPS} />
+            <RPSSelector open={showRPS} onSendChallenge={onSendChallenge} />
             <ChatInput
               onToggleRPS={() => setShowRPS((v) => !v)}
               onSendMessage={onSendMessage}

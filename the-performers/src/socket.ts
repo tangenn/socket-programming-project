@@ -44,6 +44,8 @@ interface ClientToServerEvents {
   getMe: () => void;
   group_challengeV2: (data: { group_name: string; id: string; avatarId: number; selectedRPS: string }) => void;
   group_challenge_responseV2: (data: { challenger_id: string; id: string; avatarId: number; selectedRPS: string; group_name: string }) => void;
+  private_challengeV2: (data: { receiver: string; id: string; avatarId: number; selectedRPS: string }) => void;
+  private_challenge_responseV2: (data: { challenger_id: string; id: string; avatarId: number; selectedRPS: string; receiver: string }) => void;
 }
 
 // Replace with your server's URL

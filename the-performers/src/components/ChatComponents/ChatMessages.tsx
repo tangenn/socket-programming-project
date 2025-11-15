@@ -12,26 +12,62 @@ export type MessageType = {
   text?: string;
   opponent?: string;
   participants?: string[];
+  challenger_sid?: string; // Add this
 };
 
 export function ChatMessages({
   messages,
   isGroup,
   shrink,
+  onAcceptChallenge,
 }: {
   messages: MessageType[];
   isGroup: boolean;
   shrink?: boolean;
+  onAcceptChallenge?: (challengerId: string, selectedRPS: string) => void;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  // Track which challenges have been accepted (by message id)
+  const [acceptedChallenges, setAcceptedChallenges] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const el = scrollRef.current;
     if (el) el.scrollTop = el.scrollHeight;
   }, [messages]);
 
-  const [waitingChoice, setWaitingChoice] = useState<string | null>(null);
-  const handleChoice = (choice: string) => setWaitingChoice(choice);
+  // Update accepted challenges when challenge_accepted messages arrive
+  useEffect(() => {
+    messages.forEach((m) => {
+      if (m.type === "challenge_accepted" || m.type === "challenge_result") {
+        // Find the original challenge message and mark it as accepted
+        const challengeMsg = messages.find(
+          (msg) => msg.type === "challenge" && 
+          (msg.sender === m.participants?.[1] || msg.sender === m.participants?.[0])
+        );
+        if (challengeMsg) {
+          setAcceptedChallenges((prev) => new Set(prev).add(challengeMsg.id));
+        }
+      }
+    });
+  }, [messages]);
+
+  const handleChoice = (choice: string, challengerId?: string, messageId?: string) => {
+    if (!challengerId || !onAcceptChallenge || !messageId) return;
+    
+    // Prevent double-clicking
+    if (acceptedChallenges.has(messageId)) return;
+    
+    // Map UI choice to backend format
+    const rpsMap: Record<string, string> = {
+      "✊🏿 ROCK": "rock",
+      "🖐🏿 PAPER": "paper",
+      "✌🏿 SCISSOR": "scissors",
+    };
+    
+    const selectedRPS = rpsMap[choice] || choice.toLowerCase();
+    onAcceptChallenge(challengerId, selectedRPS);
+    setAcceptedChallenges((prev) => new Set(prev).add(messageId));
+  };
 
   return (
     <div
@@ -53,39 +89,40 @@ export function ChatMessages({
               ? "You challenge others!"
               : `${m.sender} challenges you!`
             : m.isSelf
-            ? `You challenge ${m.opponent}!`
+            ? `You challenge ${m.opponent || (m as any).receiver || "them"}!`  // Fix: use receiver as fallback
             : `${m.sender} challenges you!`;
+
+          const isAccepted = acceptedChallenges.has(m.id);
 
           return (
             <div key={m.id} className="flex justify-center w-full">
               <div
                 className="comic-card max-w-2xl w-full text-center p-6 bg-white-100/70"
               >
-
                 <div className="comic-banner-title text-yellow-700 mb-3">
                   ⚡ Challenge Incoming!
                 </div>
 
                 <p className="font-semibold text-lg mb-4 text-gray-900">{challengeText}</p>
 
-                {!m.isSelf && (
+                {!m.isSelf && !isAccepted && (
                   <div className="flex justify-center gap-4">
-                    {waitingChoice ? (
-                      <p className="italic text-gray-600">
-                        Waiting for your move…
-                      </p>
-                    ) : (
-                      ["✊🏿 ROCK", "🖐🏿 PAPER", "✌🏿 SCISSOR"].map((choice) => (
-                        <button
-                          key={choice}
-                          onClick={() => handleChoice(choice)}
-                          className="comic-choice-btn text-10xl comic-text-strong"
-                        >
-                          {choice}
-                        </button>
-                      ))
-                    )}
+                    {["✊🏿 ROCK", "🖐🏿 PAPER", "✌🏿 SCISSOR"].map((choice) => (
+                      <button
+                        key={choice}
+                        onClick={() => handleChoice(choice, (m as any).challenger_sid, m.id)}
+                        className="comic-choice-btn text-10xl comic-text-strong"
+                      >
+                        {choice}
+                      </button>
+                    ))}
                   </div>
+                )}
+                
+                {!m.isSelf && isAccepted && (
+                  <p className="italic text-gray-600">
+                    Challenge accepted! Waiting for result...
+                  </p>
                 )}
               </div>
             </div>

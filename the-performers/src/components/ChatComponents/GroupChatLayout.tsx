@@ -73,7 +73,12 @@ export function GroupChatLayout({
         <div className="flex gap-8 w-full">
           {/* --- Chat + Input Section --- */}
           <div className="flex-1">
-            <ChatMessages messages={messages} isGroup shrink={showRPS} />
+            <ChatMessages 
+              messages={messages} 
+              isGroup 
+              shrink={showRPS}
+              onAcceptChallenge={onAcceptChallenge}
+            />
 
             <div className="mt-4">
               <RPSSelector open={showRPS} onSendChallenge={onSendChallenge} />

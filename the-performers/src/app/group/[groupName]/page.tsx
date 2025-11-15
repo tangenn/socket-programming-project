@@ -22,6 +22,8 @@ export default function GroupPage() {
   const [currentUser, setCurrentUser] = useState<string | null>(null);
   const [currentAvatarId, setCurrentAvatarId] = useState<number | undefined>();
   const [onlineUsers, setOnlineUsers] = useState<OnlineUser[]>([]);
+  const [pendingChallenges, setPendingChallenges] = useState<Map<string, string>>(new Map());
+
 
   const membersRef = useRef<GroupMember[]>([]);
   const currentUserRef = useRef<string | null>(null);
@@ -80,6 +82,7 @@ export default function GroupPage() {
         text: payload.text ?? payload.content ?? "",
         opponent: payload.opponent,
         participants: payload.participants,
+        challenger_sid: payload.challenger_sid,
       };
     },
     [formatTimestamp, resolveAvatar],
@@ -188,6 +191,24 @@ export default function GroupPage() {
       setOnlineUsers(data.users);
     };
 
+    const handleChallengeMessage = (payload: any) => {
+      if (payload.message?.group_name && payload.message.group_name !== groupName) {
+        return;
+      }
+      setMessages((prev) => [...prev, normalizeMessage(payload.message)]);
+    };
+    
+    const handleChallengeExpired = (data: { id: string }) => {
+      setMessages((prev) => 
+        prev.map((msg) => 
+          msg.id === data.id 
+            ? { ...msg, type: "text", text: "Challenge expired" } 
+            : msg
+        )
+      );
+    };
+    
+
     socket.on("me", handleMe);
     socket.on("group_members" as any, handleGroupMembers);
     socket.on("group_history", handleGroupHistory);
@@ -195,6 +216,8 @@ export default function GroupPage() {
     socket.on("server_message", handleServerMessage);
     socket.on("group_message_error" as any, handleGroupMessageError);
     socket.on("online_users", handleOnlineUsers);
+    socket.on("challenge_message", handleChallengeMessage);
+    socket.on("challenge_expired", handleChallengeExpired);
 
     socket.emit("online_users");
 
@@ -207,9 +230,42 @@ export default function GroupPage() {
       socket.off("server_message", handleServerMessage);
       socket.off("group_message_error" as any, handleGroupMessageError);
       socket.off("online_users", handleOnlineUsers);
+      socket.off("challenge_message", handleChallengeMessage);
+      socket.off("challenge_expired", handleChallengeExpired);
       hasRequestedHistory.current = false;
     };
   }, [groupName, normalizeMessage, router, formatTimestamp, requestMembers, resolveMemberAvatar]);
+
+  const handleSendChallenge = useCallback((selectedRPS: string) => {
+    if (!currentUser || !currentAvatarId) return;
+    
+    const id = typeof crypto !== "undefined" && "randomUUID" in crypto 
+      ? crypto.randomUUID() 
+      : `${Date.now()}`;
+    
+    socket.emit("group_challengeV2", {
+      group_name: groupName,
+      id,
+      avatarId: currentAvatarId,
+      selectedRPS: selectedRPS.toLowerCase(),
+    });
+  }, [groupName, currentUser, currentAvatarId]);
+
+  const handleAcceptChallenge = useCallback((challengerId: string, selectedRPS: string) => {
+    if (!currentUser || !currentAvatarId) return;
+    
+    const id = typeof crypto !== "undefined" && "randomUUID" in crypto 
+      ? crypto.randomUUID() 
+      : `${Date.now()}`;
+    
+    socket.emit("group_challenge_responseV2", {
+      challenger_id: challengerId,
+      id,
+      avatarId: currentAvatarId,
+      selectedRPS: selectedRPS.toLowerCase(),
+      group_name: groupName,
+    });
+  }, [groupName, currentUser, currentAvatarId]);
 
   const handleSendMessage = (content: string) => {
     const trimmed = content.trim();
@@ -236,6 +292,8 @@ export default function GroupPage() {
       members={members}
       messages={messages}
       onSendMessage={handleSendMessage}
+      onSendChallenge={handleSendChallenge}
+      onAcceptChallenge={handleAcceptChallenge}
       onLeaveGroup={handleLeaveGroup}
     />
   );
