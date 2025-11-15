@@ -3,6 +3,7 @@ import os
 import sys
 import asyncio
 from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 import db 
 
 # ---------server setup--------------
@@ -188,8 +189,19 @@ async def dm_history(sid, data):
     serializable_history = []
     for msg in history:
         serializable_msg = msg.copy()
-        if 'timestamp' in serializable_msg and isinstance(serializable_msg['timestamp'], datetime):
-            serializable_msg['timestamp'] = serializable_msg['timestamp'].isoformat()
+
+        ts = serializable_msg.get('timestamp')
+
+        if isinstance(ts, datetime):
+            # If timestamp is naive, assume it's UTC
+            if ts.tzinfo is None:
+                ts = ts.replace(tzinfo=timezone.utc)
+
+            # Convert to Bangkok local time
+            ts = ts.astimezone(ZoneInfo("Asia/Bangkok"))
+
+            serializable_msg['timestamp'] = ts.isoformat()
+
         serializable_history.append(serializable_msg)
 
     await sio.emit('dm_history', {'history': serializable_history}, to=sid)
@@ -322,8 +334,19 @@ async def group_history(sid, data):
     serializable_history = []
     for msg in history:
         serializable_msg = msg.copy()
-        if 'timestamp' in serializable_msg and isinstance(serializable_msg['timestamp'], datetime):
-            serializable_msg['timestamp'] = serializable_msg['timestamp'].isoformat()
+
+        ts = serializable_msg.get('timestamp')
+
+        if isinstance(ts, datetime):
+            # If timestamp is naive, assume it's UTC
+            if ts.tzinfo is None:
+                ts = ts.replace(tzinfo=timezone.utc)
+
+            # Convert to Bangkok local time
+            ts = ts.astimezone(ZoneInfo("Asia/Bangkok"))
+
+            serializable_msg['timestamp'] = ts.isoformat()
+
         serializable_history.append(serializable_msg)
 
     await sio.emit('group_history', {'history': serializable_history}, to=sid)\
@@ -584,72 +607,6 @@ async def selectedRPS(sid,data):
         #if want to store log 
         # timestamp = datetime.now(timezone.utc)
         # await asyncio.to_thread(db.save_game_result,  ,result, p1_id, p2_id, timestamp)
-
-
-#if want to get score board 
-# @sio.event
-# async def getScoreBoard(sid,data):
-
-# @sio.event 
-# async def group_challenge(sid,data):
-#     username = sid_to_user.get(sid)
-    
-#     group_name = data.get('group_name')
-#     id = data.get('id')
-#     sender = sid_to_user.get(sid)
-#     avatarId = data.get('avatarId')s
-#     timestamp = datetime.now(timezone.utc).isoformat()
-#     type = "challenge"
-#     text = f"{username} has challenged you to a game of Rock-Paper-Scissors!"
-
-#     message_payload = {
-#         "id": id,
-#         "sender": sender,
-#         "avatarId": avatarId,
-#         "timestamp": timestamp,
-#         "type": type,
-#         "text": text
-#     }
-
-#     await asyncio.to_thread(db.save_group_message, group_messages, group_name, id ,sender, avatarId, timestamp, type, text)
-
-#     await sio.emit('group_message',{'message': message_payload}, to=group_name)
-
-# # response for challenge
-# @sio.event
-# async def group_challenge_response(sid,data):
-#     # opponent will accept or reject challenge
-#     opponent_id = sid_to_user.get(sid)
-#     # data = { 'challenge_name': 'username', 'accepted': True }
-#     challenger_name = data.get('challenger_name')
-#     accepted = data.get('accepted')
-
-#     challenger_id = user_to_sid.get(challenger_name)
-
-#     opponent_name = sid_to_user.get(opponent_id)
-
-#     if not challenger_id:
-#         print(f"Challenger {challenger_name} is no longer online.")
-#         return
-
-#     if accepted:
-#         print(f"Game starting between {challenger_name} and {opponent_name}")
-#         print(f"Saisho wa guu . Janken pon!") #WHAT
-
-#         game_room_id = f"game_{challenger_id}_{opponent_id}"
-
-#         # opponent join private room
-#         sio.enter_room(sid,game_room_id)
-
-#         # challenger join private room
-#         sio.enter_room(challenger_id,game_room_id)
-
-#         active_games[game_room_id] = {
-#             'players': [challenger_id, opponent_id],
-#             'selected': {}
-#         }
-
-#         sio.emit('game_started', {'game_room': game_room_id, 'players': [challenger_id, game_room_id]}, room=game_room_id)
 
 @sio.event
 async def private_challengeV2(sid, data):
