@@ -11,7 +11,7 @@ export default function RegisterPage() {
         <RegisterCard />
 
         <Link href="/login" className="cursor-pointer px-5 py-2
-              bg-yellow-200 text-black font-bold
+              bg-red-200 text-black font-bold
               rounded-xl
               border-4 border-black
               shadow-[4px_4px_0px_#000]

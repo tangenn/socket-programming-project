@@ -4,7 +4,7 @@ import Link from "next/link";
 
 export default function LoginPage() {
   return (
-    <div className="min-h-screen bg-gray-300 flex flex-col">
+    <div className="min-h-screen relative flex flex-col">
 
       {/* Background */}
       <div className="absolute inset-0 bg-[url('/backgrounds/background_Dramatic.jpg')] bg-cover bg-center bg-fixed" />
@@ -12,12 +12,12 @@ export default function LoginPage() {
       {/* Optional dark overlay */}
       <div className="absolute inset-0 bg-black/40" />
 
-      <main className="relative z-10 flex flex-col items-center justify-center gap-4 pt-20 px-6">
+      <main className="relative z-10 flex flex-col flex-grow items-center justify-center px-4 py-10">
         <LoginCard />
 
         <Link
         href="/register"
-        className="px-5 py-2
+        className="cursor-pointer px-5 py-2
               bg-red-200 text-black font-bold
               rounded-xl
               border-4 border-black
