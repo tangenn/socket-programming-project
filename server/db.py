@@ -82,15 +82,20 @@ def check_credentials(users,username,password):
         # This check is also CPU-intensive
         return password == verify_password
 
-def save_dm_message(dm_messages, sender, receiver, content, timestamp):
+def save_dm_message(dm_messages, sender, receiver, content, timestamp, type="text", id=None, avatarId=None):
     """Persist a message document for DM."""
     try:
         doc = {
             "sender": sender,
             "receiver": receiver,
             "content": content,
-            "timestamp": timestamp
+            "timestamp": timestamp,
+            "type": type,  # "text" | "challenge" | "challenge_accepted" | "challenge_result"
         }
+        if id:
+            doc["id"] = id
+        if avatarId is not None:
+            doc["avatarId"] = avatarId
         dm_messages.insert_one(doc)
         print("Saved message to DB:", doc)
     except Exception as e:
@@ -109,7 +114,10 @@ def get_dm_messages(dm_messages, sender, receiver):
             'sender': 1,
             'receiver': 1,
             'content': 1,
-            'timestamp': 1
+            'timestamp': 1,
+            'type': 1,  # Include type
+            'id': 1,    # Include id
+            'avatarId': 1  # Include avatarId
             }).sort("timestamp", 1)  # Sort by timestamp ascending
         return list(docs)
     except Exception as e:

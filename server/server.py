@@ -121,14 +121,21 @@ async def dm(sid ,data):
     receiver = data.get('receiver')
     content = data.get('content')
     timestamp = datetime.now(timezone.utc)
+    
     if not sender or not receiver or not content:
         await sio.emit('dm_error', {'message': 'Invalid DM data'}, to=sid)
         return
     
     # Get sender's avatar
     sender_avatar = await asyncio.to_thread(db.get_user_avatar, users, sender)
-
-    await asyncio.to_thread(db.save_dm_message,dm_messages ,sender, receiver, content, timestamp)
+    
+    # Get message type (default to "text")
+    msg_type = data.get('type', 'text')
+    msg_id = data.get('id')
+    
+    # Only save to DB if it's a new message (not already saved)
+    if msg_id is None:
+        await asyncio.to_thread(db.save_dm_message, dm_messages, sender, receiver, content, timestamp, msg_type, None, sender_avatar)
 
     receiver_sid = user_to_sid.get(receiver)
     message_payload = {
@@ -136,31 +143,47 @@ async def dm(sid ,data):
         'receiver': receiver,
         'content': content,
         'timestamp': timestamp.isoformat(),
-        'avatarId': sender_avatar  # Add avatar to DM
+        'avatarId': sender_avatar,
+        'type': msg_type
     }
+    
+    # Add optional fields
+    if msg_id:
+        message_payload['id'] = msg_id
+    if 'challenger_sid' in data:
+        message_payload['challenger_sid'] = data['challenger_sid']
+    if 'participants' in data:
+        message_payload['participants'] = data['participants']
+    if 'opponent' in data:
+        message_payload['opponent'] = data['opponent']
 
     # receiver online
     if receiver_sid:
         await sio.emit('dm', message_payload, to=receiver_sid)
     # receiver offline
-    else :
-        await sio.emit('server_message',f'User {receiver} is offline. Message saved.', to=sid)
+    else:
+        await sio.emit('server_message', f'User {receiver} is offline. Message saved.', to=sid)
     # sender see their own msg being sent to receiver
     await sio.emit('dm', message_payload, to=sid)
 
 @sio.event
-async def dm_history(sid, data) :
+async def dm_history(sid, data):
     sender = sid_to_user.get(sid)
     receiver = data.get('receiver')
-    history = await asyncio.to_thread(db.get_dm_messages,dm_messages ,sender, receiver)
+    history = await asyncio.to_thread(db.get_dm_messages, dm_messages, sender, receiver)
 
     sender_avatar = await asyncio.to_thread(db.get_user_avatar, users, sender)
-    # receiver_avatar = await asyncio.to_thread(db.get_user_avatar, users, receiver)
 
     for msg in history:
-        msg['sender_avatar'] = sender_avatar
-        # msg['receiver_avatar'] = receiver_avatar
-    
+        # Only set sender_avatar if avatarId is not already in the message
+        if 'avatarId' not in msg or msg['avatarId'] is None:
+            msg['sender_avatar'] = sender_avatar
+            msg['avatarId'] = sender_avatar
+        else:
+            msg['sender_avatar'] = msg['avatarId']
+        # Ensure type is included (default to "text" if not present)
+        if 'type' not in msg:
+            msg['type'] = 'text'
     
     serializable_history = []
     for msg in history:
@@ -427,111 +450,83 @@ async def group_challenge_responseV2(sid,data):
     challenger_name = sid_to_user.get(challenger_id)
     group_name = data.get('group_name')
     timestamp = datetime.now(timezone.utc).isoformat()
-    type = "challenge"
     game = active_games.get(challenger_id)
 
     if not game:
         print(f"Game {challenger_id} not found (expired or challenger left).")
         return
 
-    # --- THIS IS THE FIX ---
+    # Check if already accepted
     if game['haveOpponent']:
         print(f"This Challenger has already been accepted by someone else.")
+        # Send error message to the user trying to accept
+        error_payload = {
+            "id": id,
+            "sender": "Server",
+            "avatarId": 21,
+            "timestamp": timestamp,
+            "type": "text",
+            "text": f"Challenge from {challenger_name} has already been accepted by someone else."
+        }
+        await sio.emit('challenge_message', {'message': error_payload}, to=sid)
         return
     
     # LOCK THE GAME IMMEDIATELY
     game['haveOpponent'] = True
     
-    if not challenger_id:
-        print(f"Challenger {challenger_name} is no longer online.")
+    if not challenger_id or not challenger_name:
+        print(f"Challenger {challenger_id} is no longer online.")
         return
     
     challenger_selected = game['selected']
     
     result = calculate_rps_winner(challenger_id, challenger_selected, sid, selectedRPS)
-    if result['draw'] :
-        text = f"DRAW"
-    # logic to send result
+    
+    # Determine winner name
+    if result['draw']:
+        winner_name = None
+        loser_name = None
+        text = "It's a draw!"
+        participants = []
     else:
-        print(f"{result['winner']} is the winner")
+        winner_sid = result['winner']
+        loser_sid = result['loser']
+        winner_name = sid_to_user.get(winner_sid, "Unknown")
+        loser_name = sid_to_user.get(loser_sid, "Unknown")
+        text = f"{winner_name} wins! {loser_name} loses."
+        participants = [winner_name, loser_name]
 
-    message_payload = {
-        "id": id,
+    # Send challenge accepted message first
+    accepted_payload = {
+        "id": f"{id}-accepted",
         "sender": opponent_name,
         "avatarId": avatarId,
         "timestamp": timestamp,
-        "type": type,
-        "text": text
+        "type": "challenge_accepted",
+        "text": f"{opponent_name} accepted {challenger_name}'s challenge!",
+        "participants": [opponent_name, challenger_name]
     }
+    await asyncio.to_thread(db.save_group_message, group_messages, group_name, f"{id}-accepted", opponent_name, avatarId, timestamp, "challenge_accepted", accepted_payload["text"])
+    await sio.emit('challenge_message', {'message': accepted_payload}, to=group_name)
 
-    await asyncio.to_thread(db.save_group_message, group_messages, group_name, id ,opponent_name, avatarId, timestamp, type, text)
+    # Send result message
+    result_payload = {
+        "id": f"{id}-result",
+        "sender": "System",
+        "avatarId": 21,
+        "timestamp": timestamp,
+        "type": "challenge_result",
+        "text": text,
+        "participants": participants
+    }
+    await asyncio.to_thread(db.save_group_message, group_messages, group_name, f"{id}-result", "System", 21, timestamp, "challenge_result", text)
+    await sio.emit('challenge_message', {'message': result_payload}, to=group_name)
 
-    await sio.emit('challenge_message',{'message': message_payload}, to=group_name)
-
+    # Clean up
     if challenger_id in active_games:
         del active_games[challenger_id]
 
 
-@sio.event 
-async def group_challenge(sid,data):
-    username = sid_to_user.get(sid)
-    
-    group_name = data.get('group_name')
-    id = data.get('id')
-    sender = sid_to_user.get(sid)
-    avatarId = data.get('avatarId')
-    timestamp = datetime.now(timezone.utc).isoformat()
-    type = "challenge"
-    text = f"{username} has challenged you to a game of Rock-Paper-Scissors!"
-
-    message_payload = {
-        "id": id,
-        "sender": sender,
-        "avatarId": avatarId,
-        "timestamp": timestamp,
-        "type": type,
-        "text": text
-    }
-
-    await asyncio.to_thread(db.save_group_message, group_messages, group_name, id ,sender, avatarId, timestamp, type, text)
-
-    await sio.emit('group_message',{'message': message_payload}, to=group_name)
-
-# response for challenge
-@sio.event
-async def group_challenge_response(sid,data):
-    # opponent will accept or reject challenge
-    opponent_id = sid_to_user.get(sid)
-    # data = { 'challenge_name': 'username', 'accepted': True }
-    challenger_name = data.get('challenger_name')
-    accepted = data.get('accepted')
-
-    challenger_id = user_to_sid.get(challenger_name)
-
-    opponent_name = sid_to_user.get(opponent_id)
-
-    if not challenger_id:
-        print(f"Challenger {challenger_name} is no longer online.")
-        return
-
-    if accepted:
-        print(f"Game starting between {challenger_name} and {opponent_name}")
-        print(f"Saisho wa guu . Janken pon!") #WHAT
-
-        game_room_id = f"game_{challenger_id}_{opponent_id}"
-
-        # opponent join private room
-        sio.enter_room(sid,game_room_id)
-
-        # challenger join private room
-        sio.enter_room(challenger_id,game_room_id)
-
-        active_games[game_room_id] = {
-            'players': [challenger_id, opponent_id],
-            'selected': {}
-        }
-
-        sio.emit('game_started', {'game_room': game_room_id, 'players': [challenger_id, game_room_id]}, room=game_room_id)
 
 # selected rock paper scissor
 
@@ -588,3 +583,227 @@ async def selectedRPS(sid,data):
 #if want to get score board 
 # @sio.event
 # async def getScoreBoard(sid,data):
+
+# @sio.event 
+# async def group_challenge(sid,data):
+#     username = sid_to_user.get(sid)
+    
+#     group_name = data.get('group_name')
+#     id = data.get('id')
+#     sender = sid_to_user.get(sid)
+#     avatarId = data.get('avatarId')s
+#     timestamp = datetime.now(timezone.utc).isoformat()
+#     type = "challenge"
+#     text = f"{username} has challenged you to a game of Rock-Paper-Scissors!"
+
+#     message_payload = {
+#         "id": id,
+#         "sender": sender,
+#         "avatarId": avatarId,
+#         "timestamp": timestamp,
+#         "type": type,
+#         "text": text
+#     }
+
+#     await asyncio.to_thread(db.save_group_message, group_messages, group_name, id ,sender, avatarId, timestamp, type, text)
+
+#     await sio.emit('group_message',{'message': message_payload}, to=group_name)
+
+# # response for challenge
+# @sio.event
+# async def group_challenge_response(sid,data):
+#     # opponent will accept or reject challenge
+#     opponent_id = sid_to_user.get(sid)
+#     # data = { 'challenge_name': 'username', 'accepted': True }
+#     challenger_name = data.get('challenger_name')
+#     accepted = data.get('accepted')
+
+#     challenger_id = user_to_sid.get(challenger_name)
+
+#     opponent_name = sid_to_user.get(opponent_id)
+
+#     if not challenger_id:
+#         print(f"Challenger {challenger_name} is no longer online.")
+#         return
+
+#     if accepted:
+#         print(f"Game starting between {challenger_name} and {opponent_name}")
+#         print(f"Saisho wa guu . Janken pon!") #WHAT
+
+#         game_room_id = f"game_{challenger_id}_{opponent_id}"
+
+#         # opponent join private room
+#         sio.enter_room(sid,game_room_id)
+
+#         # challenger join private room
+#         sio.enter_room(challenger_id,game_room_id)
+
+#         active_games[game_room_id] = {
+#             'players': [challenger_id, opponent_id],
+#             'selected': {}
+#         }
+
+#         sio.emit('game_started', {'game_room': game_room_id, 'players': [challenger_id, game_room_id]}, room=game_room_id)
+
+@sio.event
+async def private_challengeV2(sid, data):
+    challenger_name = sid_to_user.get(sid)
+    receiver = data.get('receiver')
+    id = data.get('id')
+    avatarId = data.get('avatarId')
+    selectedRPS = data.get('selectedRPS')
+    timestamp = datetime.now(timezone.utc)
+    type = "challenge"
+    text = f"{challenger_name} has challenged you to a game of Rock-Paper-Scissors!"
+
+    if not challenger_name or not receiver:
+        await sio.emit('dm_error', {'message': 'Invalid challenge data'}, to=sid)
+        return
+
+    # Store the challenge
+    active_games[sid] = {
+        'selected': selectedRPS,
+        'haveOpponent': False,
+        'receiver': receiver,
+        'is_private': True
+    }
+
+    message_payload = {
+        "id": id,
+        "sender": challenger_name,
+        "receiver": receiver,
+        "opponent": receiver,
+        "challenger_sid": sid,
+        "avatarId": avatarId,
+        "timestamp": timestamp.isoformat(),
+        "type": type,
+        "content": text,
+        "text": text
+    }
+
+    # Save with avatarId
+    await asyncio.to_thread(db.save_dm_message, dm_messages, challenger_name, receiver, text, timestamp, type, id, avatarId)
+
+    receiver_sid = user_to_sid.get(receiver)
+    if receiver_sid:
+        await sio.emit('dm', message_payload, to=receiver_sid)
+    # Also send to challenger so they see their challenge
+    await sio.emit('dm', message_payload, to=sid)
+
+    # Set expiration timer
+    sio.start_background_task(expire_private_challenge, sid, id)
+
+async def expire_private_challenge(challenger_sid, message_id):
+    await asyncio.sleep(120)  # 120 seconds
+
+    if challenger_sid in active_games:
+        game = active_games[challenger_sid]
+        if game.get('is_private') and not game.get('haveOpponent'):
+            print(f"Private challenge {message_id} from {challenger_sid} has expired.")
+            del active_games[challenger_sid]
+            # Optionally notify users
+            challenger_name = sid_to_user.get(challenger_sid)
+            receiver = game.get('receiver')
+            if challenger_name and receiver:
+                receiver_sid = user_to_sid.get(receiver)
+                if receiver_sid:
+                    await sio.emit('challenge_expired', {'id': message_id}, to=receiver_sid)
+                await sio.emit('challenge_expired', {'id': message_id}, to=challenger_sid)
+
+@sio.event
+async def private_challenge_responseV2(sid, data):
+    challenger_id = data.get('challenger_id')
+    id = data.get('id')
+    avatarId = data.get('avatarId')
+    selectedRPS = data.get('selectedRPS')
+    opponent_name = sid_to_user.get(sid)
+    challenger_name = sid_to_user.get(challenger_id)
+    receiver = data.get('receiver')  # The person who sent the challenge
+    timestamp = datetime.now(timezone.utc)
+    game = active_games.get(challenger_id)
+
+    if not game:
+        print(f"Game {challenger_id} not found (expired or challenger left).")
+        return
+
+    # Check if already accepted
+    if game['haveOpponent']:
+        print(f"This challenge has already been accepted.")
+        error_payload = {
+            "id": id,
+            "sender": "Server",
+            "receiver": opponent_name,
+            "avatarId": 21,
+            "timestamp": timestamp.isoformat(),
+            "type": "text",
+            "content": f"Challenge from {challenger_name} has already been accepted.",
+            "text": f"Challenge from {challenger_name} has already been accepted."
+        }
+        await sio.emit('dm', error_payload, to=sid)
+        return
+
+    # LOCK THE GAME IMMEDIATELY
+    game['haveOpponent'] = True
+
+    if not challenger_id or not challenger_name:
+        print(f"Challenger {challenger_id} is no longer online.")
+        return
+
+    challenger_selected = game['selected']
+    result = calculate_rps_winner(challenger_id, challenger_selected, sid, selectedRPS)
+
+    # Determine winner name
+    if result['draw']:
+        winner_name = None
+        loser_name = None
+        text = "It's a draw!"
+        participants = []
+    else:
+        winner_sid = result['winner']
+        loser_sid = result['loser']
+        winner_name = sid_to_user.get(winner_sid, "Unknown")
+        loser_name = sid_to_user.get(loser_sid, "Unknown")
+        text = f"{winner_name} wins! {loser_name} loses."
+        participants = [winner_name, loser_name]
+
+    # Send challenge accepted message
+    accepted_payload = {
+        "id": f"{id}-accepted",
+        "sender": opponent_name,
+        "receiver": receiver,
+        "avatarId": avatarId,
+        "timestamp": timestamp.isoformat(),
+        "type": "challenge_accepted",
+        "content": f"{opponent_name} accepted {challenger_name}'s challenge!",
+        "text": f"{opponent_name} accepted {challenger_name}'s challenge!",
+        "participants": [opponent_name, challenger_name]
+    }
+    # Save with avatarId
+    await asyncio.to_thread(db.save_dm_message, dm_messages, opponent_name, receiver, accepted_payload["content"], timestamp, "challenge_accepted", f"{id}-accepted", avatarId)
+    
+    challenger_sid = user_to_sid.get(challenger_name)
+    if challenger_sid:
+        await sio.emit('dm', accepted_payload, to=challenger_sid)
+    await sio.emit('dm', accepted_payload, to=sid)
+
+    # Send result message
+    result_payload = {
+        "id": f"{id}-result",
+        "sender": "System",
+        "receiver": receiver,
+        "avatarId": 21,
+        "timestamp": timestamp.isoformat(),
+        "type": "challenge_result",
+        "content": text,
+        "text": text,
+        "participants": participants
+    }
+    # Save with avatarId
+    await asyncio.to_thread(db.save_dm_message, dm_messages, "System", receiver, text, timestamp, "challenge_result", f"{id}-result", 21)
+    
+    if challenger_sid:
+        await sio.emit('dm', result_payload, to=challenger_sid)
+    await sio.emit('dm', result_payload, to=sid)
+
+    if challenger_id in active_games:
+        del active_games[challenger_id]
