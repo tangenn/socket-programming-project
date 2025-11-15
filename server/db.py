@@ -4,6 +4,7 @@ from pymongo import MongoClient
 from pymongo.errors import DuplicateKeyError
 from dotenv import load_dotenv
 from datetime import datetime
+import bcrypt
 
 def connect_db() :
     # ++++++++ CONNECT DATABASE (MONGODB) .ENV ++++++++
@@ -45,9 +46,10 @@ def connect_db() :
     
 def add_user_to_db(users, username, password, avatarId, online):
     try:
+        hashed = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
         doc = {
             "username": username,
-            "password": password,
+            "password": hashed,
             "avatar_id": avatarId
         }
         users.update_one({"username": username}, {"$set": doc}, upsert=True)
@@ -80,7 +82,12 @@ def check_credentials(users,username,password):
             return False # Account has no password (old data?)
 
         # This check is also CPU-intensive
-        return password == verify_password
+        try:
+            # verify bcrypt hash
+            return bcrypt.checkpw(password.encode('utf-8'), verify_password.encode('utf-8'))
+        except Exception as e:
+            print("check_credentials error:", e)
+            return False
 
 def save_dm_message(dm_messages, sender, receiver, text, timestamp, type="text", id=None, avatarId=None):
     """Persist a message document for DM."""
