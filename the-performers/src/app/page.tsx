@@ -186,7 +186,7 @@ export default function HomePage() {
       <div className="absolute inset-0 bg-black/40" />
 
       {/* Content */}
-      <div className="relative z-10 flex justify-center gap-10 pt-20 px-6">
+      <div className="relative z-10 flex justify-center gap-10 pt-40 px-6">
         <UsersPanel currentUser={mockUser} />
         <GroupChatsPanel />
       </div>

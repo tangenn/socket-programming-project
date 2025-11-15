@@ -63,7 +63,7 @@ export default function Navbar() {
         className="text-4xl font-extrabold"
         style={{ fontFamily: "'Bangers', sans-serif" }}
       >
-        PRF
+        The Perf
       </h1>
 
       {/* Right Controls */}
