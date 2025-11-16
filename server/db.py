@@ -114,7 +114,8 @@ def get_dm_messages(dm_messages, sender, receiver):
         docs = dm_messages.find({
             "$or": [
                 {"sender": sender, "receiver": receiver},
-                {"sender": receiver, "receiver": sender}
+                {"sender": receiver, "receiver": sender},
+                {"sender": "System", "receiver": {"$in": [sender, receiver]}}
             ]
             },{
             '_id': 0,
