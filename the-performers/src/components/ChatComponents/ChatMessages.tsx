@@ -88,14 +88,6 @@ export function ChatMessages({
            🔥  CHALLENGE BANNER
         ================================= */
         if (m.type === "challenge") {
-          const challengeText = isGroup
-            ? m.isSelf
-              ? "You challenge others!"
-              : `${m.sender} challenges you!`
-            : m.isSelf
-            ? `You challenge ${m.opponent || (m as any).receiver || "them"}!`  // Fix: use receiver as fallback
-            : `${m.sender} challenges you!`;
-
           const isAccepted = acceptedChallenges.has(m.id);
 
           return (
@@ -107,7 +99,7 @@ export function ChatMessages({
                   ⚡ Challenge Incoming!
                 </div>
 
-                <p className="font-semibold text-lg mb-4 text-gray-900">{challengeText}</p>
+                <p className="font-semibold text-lg mb-4 text-gray-900">{m.text || "Challenge!"}</p>
 
                 {!m.isSelf && !isAccepted && (
                   <div className="flex justify-center gap-4">
@@ -137,13 +129,6 @@ export function ChatMessages({
            🔵  CHALLENGE ACCEPTED BANNER
         ================================= */
         if (m.type === "challenge_accepted") {
-          let text =
-            isGroup && m.participants?.length === 2
-              ? `${m.participants[0]} accepted ${m.participants[1]}'s challenge!`
-              : m.isSelf
-              ? `You accepted ${m.participants?.[1] || m.opponent || 'their'}'s challenge!`
-              : `${m.sender} accepted your challenge!`;
-
           return (
             <div key={messageKey} className="flex justify-center w-full">
               <div
@@ -152,42 +137,23 @@ export function ChatMessages({
                 <div className="comic-banner-title text-blue-900 mb-3">
                   💥 Challenge Accepted!
                 </div>
-                <p className="font-bold text-black-900 text-lg">{text}</p>
+                <p className="font-bold text-black-900 text-lg">{m.text || "Challenge accepted!"}</p>
               </div>
             </div>
           );
         }
 
-        /* ================================
+         /* ================================
            🔥  CHALLENGE RESULT BANNER
         ================================= */
         if (m.type === "challenge_result") {
-          const parts = m.participants ?? [];
-          const isDraw = parts.length === 0;
-
-          let text = isDraw
-            ? "It's a draw!"
-            : parts[0] === "You"
-            ? `You won! ${parts[1]} lost.`
-            : parts[1] === "You"
-            ? `You lost. ${parts[0]} won.`
-            : `${parts[0]} defeated ${parts[1]}!`;
-
-          const color = isDraw
-            ? "bg-yellow-100/80"
-            : parts[0] === "You"
-            ? "bg-green-200/80"
-            : parts[1] === "You"
-            ? "bg-red-200/80"
-            : "bg-white";
-
           return (
             <div key={messageKey} className="flex justify-center w-full">
-              <div className={`comic-card ${color} max-w-2xl w-full text-center p-6`}>
+              <div className="comic-card bg-yellow-100/80 max-w-2xl w-full text-center p-6">
                 <div className="comic-banner-title mb-3">
-                  {isDraw ? "😮 It's a Draw!" : "🔥 Battle Result!"}
+                  🔥 Battle Result!
                 </div>
-                <p className="font-bold text-lg">{text}</p>
+                <p className="font-bold text-lg">{m.text || "Challenge completed"}</p>
               </div>
             </div>
           );
