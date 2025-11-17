@@ -334,8 +334,19 @@ async def group_history(sid, data):
     serializable_history = []
     for msg in history:
         serializable_msg = msg.copy()
-        if 'timestamp' in serializable_msg and isinstance(serializable_msg['timestamp'], datetime):
-            serializable_msg['timestamp'] = serializable_msg['timestamp'].isoformat()
+
+        ts = serializable_msg.get('timestamp')
+
+        if isinstance(ts, datetime):
+            # If timestamp is naive, assume it's UTC
+            if ts.tzinfo is None:
+                ts = ts.replace(tzinfo=timezone.utc)
+
+            # Convert to Bangkok local time
+            ts = ts.astimezone(ZoneInfo("Asia/Bangkok"))
+
+            serializable_msg['timestamp'] = ts.isoformat()
+
         serializable_history.append(serializable_msg)
 
     await sio.emit('group_history', {'history': serializable_history}, to=sid)\
