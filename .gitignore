@@ -1,5 +1,6 @@
 # Ignore the node_modules directory
 node_modules/
+the-performers/node_modules/
 
 # Ignore .env files
 *.env
