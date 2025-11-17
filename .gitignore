@@ -3,10 +3,14 @@ node_modules/
 the-performers/node_modules/
 
 # Ignore .env files
-.env
+*.env
 
 # Ignore all .log files
 *.log
 
 # Ignore macOS system files
 .DS_Store
+
+__pycache__/
+
+*server.py
